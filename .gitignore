@@ -1,0 +1,18 @@
+# Binary (root-level compiled output only)
+/aurelianprm
+*.db
+*.db-shm
+*.db-wal
+
+# Build artifacts
+/dist/
+
+# Config (may contain secrets)
+config.json
+config.yaml
+
+# Go
+vendor/
+
+# Claude Code local settings
+.claude/
