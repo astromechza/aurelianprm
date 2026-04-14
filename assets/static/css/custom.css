@@ -1,0 +1,6 @@
+/* CSS variable overrides for AurelianPRM. */
+/* Add colour / spacing token overrides here — no component styles. */
+
+:root {
+  --pico-font-size: 16px;
+}

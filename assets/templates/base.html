@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AurelianPRM</title>
+  <link rel="stylesheet" href="/static/css/pico.min.css">
+  <link rel="stylesheet" href="/static/css/custom.css">
+  <script src="/static/js/htmx.min.js" defer></script>
+</head>
+<body>
+  <header class="container">
+    <nav>
+      <ul>
+        <li><strong><a href="/">AurelianPRM</a></strong></li>
+      </ul>
+      <ul>
+        <li><a href="/people">People</a></li>
+      </ul>
+    </nav>
+  </header>
+  <main class="container">
+    {{.Content}}
+  </main>
+  <footer class="container">
+    <small>AurelianPRM</small>
+  </footer>
+</body>
+</html>

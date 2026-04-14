@@ -46,15 +46,6 @@ func TestRun_ServeInvalidConfig(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestRun_ServeValidConfig(t *testing.T) {
-	cfgJSON := `{"db_path":":memory:","listen":":0","auth_password_hash":"$2a$12$x","smtp":{"host":"","port":0,"username":"","password":"","from":""},"reminder_email":"","reminder_send_time":"08:00","reminder_timezone":"UTC"}`
-	path := t.TempDir() + "/config.json"
-	require.NoError(t, os.WriteFile(path, []byte(cfgJSON), 0o600))
-
-	err := run([]string{"serve", "--config", path})
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "not yet implemented")
-}
 
 func TestRun_SendTestEmailNoConfig(t *testing.T) {
 	err := run([]string{"send-test-email"})

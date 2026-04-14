@@ -2,18 +2,22 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
 	"runtime/debug"
 	"syscall"
 
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/term"
 
+	"github.com/astromechza/aurelianprm/assets"
 	"github.com/astromechza/aurelianprm/internal/config"
 	"github.com/astromechza/aurelianprm/internal/db"
+	"github.com/astromechza/aurelianprm/internal/web"
 )
 
 // version is set at build time via -ldflags "-X main.version=v0.1.0".
@@ -117,8 +121,18 @@ func runServe(args []string) error {
 	}
 	defer sqlDB.Close() //nolint:errcheck
 
-	// TODO: Phase 3 — wire up HTTP server.
-	return errors.New("serve not yet implemented (phase 3)")
+	srv, err := web.New(web.Config{
+		Listen:       cfg.Listen,
+		PasswordHash: cfg.AuthPasswordHash,
+	}, sqlDB, assets.FS)
+	if err != nil {
+		return fmt.Errorf("creating server: %w", err)
+	}
+
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	return srv.ListenAndServe(ctx)
 }
 
 // runHashPassword reads a password interactively and prints its bcrypt hash.

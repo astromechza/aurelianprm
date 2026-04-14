@@ -10,6 +10,7 @@
 # Config (may contain secrets)
 config.json
 config.yaml
+config.*.json
 
 # Go
 vendor/
