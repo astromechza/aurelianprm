@@ -54,7 +54,12 @@ func New(cfg Config, database *sql.DB, rootFS fs.FS) (*Server, error) {
 	api.HandlerFromMux(strictHandler, protected)
 
 	mux := http.NewServeMux()
-	mux.Handle("/", BasicAuth(cfg.PasswordHash)(protected))
+	if cfg.AppConfig != nil && cfg.AppConfig.DisableBasicAuth {
+		log.Println("WARNING: Basic Auth is disabled — do not use this in production")
+		mux.Handle("/", protected)
+	} else {
+		mux.Handle("/", BasicAuth(cfg.PasswordHash)(protected))
+	}
 
 	s.handler = mux
 	s.http = &http.Server{

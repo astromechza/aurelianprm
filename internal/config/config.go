@@ -32,6 +32,9 @@ type Config struct {
 	ReminderSendTime string `json:"reminder_send_time"`
 	// ReminderTimezone is a valid IANA timezone name (e.g. "Europe/London").
 	ReminderTimezone string `json:"reminder_timezone"`
+	// DisableBasicAuth disables HTTP Basic Auth when set to true.
+	// For development use only — never set this in production.
+	DisableBasicAuth bool `json:"disable_basic_auth,omitempty"`
 }
 
 // Load reads and decodes a JSON config file from the given path.
