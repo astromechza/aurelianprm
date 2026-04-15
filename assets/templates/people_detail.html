@@ -1,12 +1,12 @@
 {{define "people_detail.html"}}
-<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1rem">
+<div class="flex-between">
   <hgroup>
     <h1>{{.Person.Name}}</h1>
     {{if .Person.Nickname}}<p>{{deref .Person.Nickname}}</p>{{end}}
   </hgroup>
-  <div style="display:flex; gap:0.5rem; align-items:center">
+  <div class="flex-gap">
     <a href="/people/{{.Person.ID}}/edit" role="button" class="outline">Edit</a>
-    <form method="POST" action="/people/{{.Person.ID}}/delete" style="margin:0">
+    <form method="POST" action="/people/{{.Person.ID}}/delete" class="no-margin">
       <button type="submit" class="secondary outline"
         onclick="return confirm('Delete {{.Person.Name}}? This cannot be undone.')">Delete</button>
     </form>

@@ -4,3 +4,19 @@
 :root {
   --pico-font-size: 16px;
 }
+
+/* Layout utilities */
+.flex-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--pico-spacing);
+}
+.flex-gap {
+  display: flex;
+  gap: calc(var(--pico-spacing) / 2);
+  align-items: center;
+}
+.no-margin {
+  margin: 0;
+}

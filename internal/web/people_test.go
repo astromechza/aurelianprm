@@ -126,7 +126,7 @@ func TestPersonCreate_And_Detail(t *testing.T) {
 	assert.Contains(t, body, "test notes")
 }
 
-func TestPersonCreate_EmptyName_Returns400(t *testing.T) {
+func TestPersonCreate_EmptyName_ReturnsFormWithError(t *testing.T) {
 	srv := newWebTestServer(t)
 	rec := doWeb(t, srv, http.MethodPost, "/people/new", url.Values{"name": {""}})
 	// Returns the form with an error, not a redirect.
