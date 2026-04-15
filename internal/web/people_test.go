@@ -273,3 +273,53 @@ func TestPersonCreate_WithBirthday(t *testing.T) {
 	rec2 := doWeb(t, srv, http.MethodGet, "/people/"+id, nil)
 	assert.Contains(t, rec2.Body.String(), "15 June 1990")
 }
+
+func TestPersonUpdate_EmptyName_ReturnsFormWithError(t *testing.T) {
+	srv := newWebTestServer(t)
+
+	rec := doWeb(t, srv, http.MethodPost, "/people/new", url.Values{"name": {"Frank"}})
+	id := strings.TrimPrefix(rec.Header().Get("Location"), "/people/")
+
+	rec2 := doWeb(t, srv, http.MethodPost, "/people/"+id+"/edit", url.Values{"name": {""}})
+	assert.Equal(t, http.StatusOK, rec2.Code)
+	assert.Contains(t, rec2.Body.String(), "Name is required")
+}
+
+func TestPersonEdit_NotFound(t *testing.T) {
+	srv := newWebTestServer(t)
+	rec := doWeb(t, srv, http.MethodGet, "/people/nonexistent/edit", nil)
+	assert.Equal(t, http.StatusNotFound, rec.Code)
+}
+
+func TestInteractionCreate_BadDate(t *testing.T) {
+	srv := newWebTestServer(t)
+
+	rec := doWeb(t, srv, http.MethodPost, "/people/new", url.Values{"name": {"Grace"}})
+	id := strings.TrimPrefix(rec.Header().Get("Location"), "/people/")
+
+	rec2 := doHTMX(t, srv, http.MethodPost, "/people/"+id+"/interactions", url.Values{
+		"occurred_at": {"not-a-date"},
+	})
+	assert.Equal(t, http.StatusBadRequest, rec2.Code)
+}
+
+func TestPersonDelete_CleansUpBirthday(t *testing.T) {
+	srv := newWebTestServer(t)
+
+	// Create a person with a birthday.
+	rec := doWeb(t, srv, http.MethodPost, "/people/new", url.Values{
+		"name":           {"Julia"},
+		"birthday_year":  {"1990"},
+		"birthday_month": {"6"},
+		"birthday_day":   {"15"},
+	})
+	id := strings.TrimPrefix(rec.Header().Get("Location"), "/people/")
+
+	// Delete the person.
+	rec2 := doWeb(t, srv, http.MethodPost, "/people/"+id+"/delete", nil)
+	assert.Equal(t, http.StatusSeeOther, rec2.Code)
+
+	// Person should be gone.
+	rec3 := doWeb(t, srv, http.MethodGet, "/people/"+id, nil)
+	assert.Equal(t, http.StatusNotFound, rec3.Code)
+}

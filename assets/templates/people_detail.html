@@ -8,7 +8,7 @@
     <a href="/people/{{.Person.ID}}/edit" role="button" class="outline">Edit</a>
     <form method="POST" action="/people/{{.Person.ID}}/delete" class="no-margin">
       <button type="submit" class="secondary outline"
-        onclick="return confirm('Delete {{.Person.Name}}? This cannot be undone.')">Delete</button>
+        onclick="return confirm('Delete this person? This cannot be undone.')">Delete</button>
     </form>
   </div>
 </div>

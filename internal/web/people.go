@@ -266,6 +266,14 @@ func (s *Server) handlePersonUpdate(w http.ResponseWriter, r *http.Request) {
 // handlePersonDelete deletes a person and redirects to the people list.
 func (s *Server) handlePersonDelete(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
+	existing, err := store.GetPerson(r.Context(), s.db, id)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	if err == nil && existing.BirthdayID != nil {
+		_ = store.DeleteBlurryDate(r.Context(), s.db, *existing.BirthdayID)
+	}
 	if err := store.DeletePerson(r.Context(), s.db, id); err != nil && !errors.Is(err, sql.ErrNoRows) {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
@@ -412,7 +420,9 @@ func parseBirthdayForm(r *http.Request) *model.BlurryDate {
 func updateBlurryDate(ctx context.Context, db *sql.DB, input *model.BlurryDate, existingID *string) (*string, error) {
 	if input == nil {
 		if existingID != nil {
-			_ = store.DeleteBlurryDate(ctx, db, *existingID)
+			if err := store.DeleteBlurryDate(ctx, db, *existingID); err != nil && !errors.Is(err, sql.ErrNoRows) {
+				return nil, err
+			}
 		}
 		return nil, nil
 	}
