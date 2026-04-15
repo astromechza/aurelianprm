@@ -1,0 +1,128 @@
+{{define "people_detail.html"}}
+<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1rem">
+  <hgroup>
+    <h1>{{.Person.Name}}</h1>
+    {{if .Person.Nickname}}<p>{{deref .Person.Nickname}}</p>{{end}}
+  </hgroup>
+  <div style="display:flex; gap:0.5rem; align-items:center">
+    <a href="/people/{{.Person.ID}}/edit" role="button" class="outline">Edit</a>
+    <form method="POST" action="/people/{{.Person.ID}}/delete" style="margin:0">
+      <button type="submit" class="secondary outline"
+        onclick="return confirm('Delete {{.Person.Name}}? This cannot be undone.')">Delete</button>
+    </form>
+  </div>
+</div>
+
+{{if .Person.Notes}}<p>{{deref .Person.Notes}}</p>{{end}}
+{{if .BirthdayDisplay}}<p><strong>Birthday:</strong> {{.BirthdayDisplay}}</p>{{end}}
+
+<article>
+  <header><strong>Contact Methods</strong></header>
+  <table>
+    <tbody id="contact-methods-list">
+      {{range .ContactMethods}}{{template "contact_method_row.html" .}}{{end}}
+    </tbody>
+  </table>
+  <form hx-post="/people/{{.Person.ID}}/contact-methods"
+        hx-target="#contact-methods-list"
+        hx-swap="beforeend"
+        hx-on::after-request="this.reset()">
+    <div class="grid">
+      <select name="type" required>
+        <option value="email">Email</option>
+        <option value="phone">Phone</option>
+        <option value="social">Social</option>
+        <option value="website">Website</option>
+      </select>
+      <input name="value" placeholder="Value" required>
+      <input name="label" placeholder="Label (optional)">
+      <button type="submit">Add</button>
+    </div>
+  </form>
+</article>
+
+<article>
+  <header><strong>Interactions</strong></header>
+  <table>
+    <thead><tr><th>Date</th><th>Channel</th><th>Notes</th></tr></thead>
+    <tbody id="interactions-list">
+      {{range .Interactions}}{{template "interaction_row.html" .}}{{end}}
+    </tbody>
+  </table>
+  <form hx-post="/people/{{.Person.ID}}/interactions"
+        hx-target="#interactions-list"
+        hx-swap="afterbegin"
+        hx-on::after-request="this.reset()">
+    <div class="grid">
+      <input type="datetime-local" name="occurred_at" required>
+      <input name="channel" placeholder="Channel (e.g. phone)">
+      <input name="notes" placeholder="Notes">
+      <button type="submit">Log</button>
+    </div>
+  </form>
+</article>
+
+<article>
+  <header><strong>Relationships</strong></header>
+  <table>
+    <thead><tr><th>Label</th><th>Type</th><th>Name / ID</th><th></th></tr></thead>
+    <tbody id="relationships-list">
+      {{range .Relationships}}{{template "relationship_row.html" .}}{{end}}
+    </tbody>
+  </table>
+  <form hx-post="/people/{{.Person.ID}}/relationships"
+        hx-target="#relationships-list"
+        hx-swap="beforeend"
+        hx-on::after-request="this.reset()">
+    <div class="grid">
+      <input name="label" placeholder="Label (e.g. friend)" required>
+      <select name="to_type" required>
+        <option value="person">Person</option>
+        <option value="address">Address</option>
+        <option value="pet">Pet</option>
+        <option value="work">Work</option>
+      </select>
+      <input name="to_id" placeholder="Entity ID" required>
+      <button type="submit">Add</button>
+    </div>
+  </form>
+</article>
+{{end}}
+
+{{define "interaction_row.html"}}
+<tr>
+  <td>{{.OccurredAt.Format "2006-01-02 15:04"}}</td>
+  <td>{{deref .Channel}}</td>
+  <td>{{deref .Notes}}</td>
+</tr>
+{{end}}
+
+{{define "contact_method_row.html"}}
+<tr>
+  <td>{{.Type}}</td>
+  <td>{{.Value}}</td>
+  <td>{{deref .Label}}</td>
+  <td>
+    <button hx-delete="/people/{{.PersonID}}/contact-methods/{{.ID}}"
+            hx-target="closest tr"
+            hx-swap="outerHTML"
+            hx-confirm="Remove this contact method?"
+            class="outline secondary">&#x2715;</button>
+  </td>
+</tr>
+{{end}}
+
+{{define "relationship_row.html"}}
+<tr>
+  <td>{{.Relationship.Label}}</td>
+  <td>{{.Relationship.ToType}}</td>
+  <td>{{.ToName}}</td>
+  <td>
+    <button hx-delete="/relationships/{{.Relationship.ID}}"
+            hx-target="closest tr"
+            hx-swap="outerHTML"
+            hx-confirm="Remove this relationship?"
+            class="outline secondary">&#x2715;</button>
+  </td>
+</tr>
+{{end}}

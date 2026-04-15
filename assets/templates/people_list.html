@@ -1,0 +1,44 @@
+{{define "people_list.html"}}
+<hgroup>
+  <h1>People</h1>
+</hgroup>
+<div class="grid">
+  <input type="search" name="name" placeholder="Search by name…"
+    value="{{.Query}}"
+    hx-get="/people"
+    hx-target="#people-list"
+    hx-trigger="input changed delay:300ms, search"
+    aria-label="Search people">
+  <p><a href="/people/new" role="button">+ Add Person</a></p>
+</div>
+<div id="people-list">
+  {{template "people_list_rows.html" .}}
+</div>
+{{end}}
+
+{{define "people_list_rows.html"}}
+{{if .People}}
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Nickname</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {{range .People}}
+    <tr>
+      <td><a href="/people/{{.ID}}">{{.Name}}</a></td>
+      <td>{{deref .Nickname}}</td>
+      <td><a href="/people/{{.ID}}" role="button" class="outline">View →</a></td>
+    </tr>
+    {{end}}
+  </tbody>
+</table>
+{{else}}
+<p>
+  {{if .Query}}No people found matching "{{.Query}}".{{else}}No people yet. <a href="/people/new">Add someone</a>!{{end}}
+</p>
+{{end}}
+{{end}}

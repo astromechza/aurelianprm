@@ -1,0 +1,52 @@
+{{define "people_form.html"}}
+<hgroup>
+  <h1>{{if .Person}}Edit {{.Person.Name}}{{else}}New Person{{end}}</h1>
+</hgroup>
+{{if .Error}}<p><mark>{{.Error}}</mark></p>{{end}}
+<form method="POST" action="{{if .Person}}/people/{{.Person.ID}}/edit{{else}}/people/new{{end}}">
+  <label>
+    Name *
+    <input name="name" value="{{if .Person}}{{.Person.Name}}{{end}}" required autofocus>
+  </label>
+  <label>
+    Nickname
+    <input name="nickname" value="{{if .Person}}{{deref .Person.Nickname}}{{end}}">
+  </label>
+  <label>
+    Notes
+    <textarea name="notes">{{if .Person}}{{deref .Person.Notes}}{{end}}</textarea>
+  </label>
+  <fieldset>
+    <legend>Birthday (all fields optional)</legend>
+    <div class="grid">
+      <label>Year
+        <input type="number" name="birthday_year" min="1900" max="2100"
+          value="{{if .Birthday}}{{if .Birthday.Year}}{{.Birthday.Year}}{{end}}{{end}}">
+      </label>
+      <label>Month
+        <input type="number" name="birthday_month" min="1" max="12"
+          value="{{if .Birthday}}{{if .Birthday.Month}}{{.Birthday.Month}}{{end}}{{end}}">
+      </label>
+      <label>Day
+        <input type="number" name="birthday_day" min="1" max="31"
+          value="{{if .Birthday}}{{if .Birthday.Day}}{{.Birthday.Day}}{{end}}{{end}}">
+      </label>
+    </div>
+    <label>
+      <input type="checkbox" name="reminder_enabled" role="switch"
+        {{if .Birthday}}{{if .Birthday.ReminderEnabled}}checked{{end}}{{else}}checked{{end}}>
+      Send reminders
+    </label>
+    <label>
+      Days before reminder
+      <input type="number" name="reminder_days_before" min="0"
+        value="{{if .Birthday}}{{.Birthday.ReminderDaysBefore}}{{else}}1{{end}}">
+    </label>
+  </fieldset>
+  <div class="grid">
+    <button type="submit">{{if .Person}}Save{{else}}Create{{end}}</button>
+    <a href="{{if .Person}}/people/{{.Person.ID}}{{else}}/people{{end}}"
+       role="button" class="secondary outline">Cancel</a>
+  </div>
+</form>
+{{end}}

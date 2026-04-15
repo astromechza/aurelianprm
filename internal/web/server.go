@@ -48,6 +48,20 @@ func New(cfg Config, database *sql.DB, rootFS fs.FS) (*Server, error) {
 	protected.Handle("GET /static/", http.StripPrefix("/static/", http.FileServerFS(staticSub)))
 	protected.HandleFunc("GET /", s.handleIndex)
 
+	// People routes
+	protected.HandleFunc("GET /people", s.handlePeopleList)
+	protected.HandleFunc("GET /people/new", s.handlePersonNew)
+	protected.HandleFunc("POST /people/new", s.handlePersonCreate)
+	protected.HandleFunc("GET /people/{id}", s.handlePersonDetail)
+	protected.HandleFunc("GET /people/{id}/edit", s.handlePersonEdit)
+	protected.HandleFunc("POST /people/{id}/edit", s.handlePersonUpdate)
+	protected.HandleFunc("POST /people/{id}/delete", s.handlePersonDelete)
+	protected.HandleFunc("POST /people/{id}/interactions", s.handleInteractionCreate)
+	protected.HandleFunc("POST /people/{id}/contact-methods", s.handleContactMethodCreate)
+	protected.HandleFunc("DELETE /people/{id}/contact-methods/{method_id}", s.handleContactMethodDelete)
+	protected.HandleFunc("POST /people/{id}/relationships", s.handleRelationshipCreate)
+	protected.HandleFunc("DELETE /relationships/{id}", s.handleRelationshipDelete)
+
 	// Mount API handlers
 	apiHandlers := api.NewHandlers(database, cfg.AppConfig)
 	strictHandler := api.NewStrictHandler(apiHandlers, nil)

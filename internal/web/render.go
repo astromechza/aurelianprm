@@ -17,7 +17,15 @@ type Templates struct {
 // It panics (via template.Must) if any template is malformed.
 func ParseTemplates(fsys fs.FS) *Templates {
 	return &Templates{
-		tmpl: template.Must(template.ParseFS(fsys, "templates/*.html")),
+		tmpl: template.Must(template.New("").Funcs(template.FuncMap{
+			// deref dereferences a *string, returning "" for nil.
+			"deref": func(s *string) string {
+				if s == nil {
+					return ""
+				}
+				return *s
+			},
+		}).ParseFS(fsys, "templates/*.html")),
 	}
 }
 
