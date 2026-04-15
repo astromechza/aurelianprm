@@ -124,6 +124,7 @@ func runServe(args []string) error {
 	srv, err := web.New(web.Config{
 		Listen:       cfg.Listen,
 		PasswordHash: cfg.AuthPasswordHash,
+		AppConfig:    cfg,
 	}, sqlDB, assets.FS)
 	if err != nil {
 		return fmt.Errorf("creating server: %w", err)

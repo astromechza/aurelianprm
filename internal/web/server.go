@@ -9,6 +9,9 @@ import (
 	"net"
 	"net/http"
 	"time"
+
+	"github.com/astromechza/aurelianprm/internal/api"
+	"github.com/astromechza/aurelianprm/internal/config"
 )
 
 // Server holds the HTTP server and its dependencies.
@@ -45,6 +48,11 @@ func New(cfg Config, database *sql.DB, rootFS fs.FS) (*Server, error) {
 	protected.Handle("GET /static/", http.StripPrefix("/static/", http.FileServerFS(staticSub)))
 	protected.HandleFunc("GET /", s.handleIndex)
 
+	// Mount API handlers
+	apiHandlers := api.NewHandlers(database, cfg.AppConfig)
+	strictHandler := api.NewStrictHandler(apiHandlers, nil)
+	api.HandlerFromMux(strictHandler, protected)
+
 	mux := http.NewServeMux()
 	mux.Handle("/", BasicAuth(cfg.PasswordHash)(protected))
 
@@ -69,6 +77,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 type Config struct {
 	Listen       string
 	PasswordHash string
+	AppConfig    *config.Config
 }
 
 // ListenAndServe starts the HTTP server and blocks until ctx is cancelled.
