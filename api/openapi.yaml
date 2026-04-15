@@ -1,0 +1,999 @@
+openapi: "3.0.3"
+info:
+  title: AurelianPRM API
+  version: "1.0.0"
+
+paths:
+  /api/people:
+    get:
+      operationId: listPeople
+      summary: List all people, optionally filtered by name/nickname substring
+      parameters:
+        - name: name
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PersonSummary"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    post:
+      operationId: createPerson
+      summary: Create a new person
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePersonRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PersonDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/people/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: getPerson
+      summary: Get a person with all linked data
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PersonDetail"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    put:
+      operationId: updatePerson
+      summary: Update a person's core fields
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePersonRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PersonDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    delete:
+      operationId: deletePerson
+      summary: Delete a person and all cascade-related data
+      responses:
+        "204":
+          description: No Content
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/people/{id}/contact-methods:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      operationId: createContactMethod
+      summary: Add a contact method to a person
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateContactMethodRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContactMethod"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/people/{id}/contact-methods/{method_id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: method_id
+        in: path
+        required: true
+        schema:
+          type: string
+    delete:
+      operationId: deleteContactMethod
+      summary: Remove a contact method
+      responses:
+        "204":
+          description: No Content
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/people/{id}/interactions:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: listInteractions
+      summary: List interactions for a person, newest first
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Interaction"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    post:
+      operationId: createInteraction
+      summary: Log a new interaction with a person
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateInteractionRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Interaction"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/relationships:
+    post:
+      operationId: createRelationship
+      summary: Create a relationship from a person to another entity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRelationshipRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Relationship"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/relationships/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    delete:
+      operationId: deleteRelationship
+      summary: Remove a relationship
+      responses:
+        "204":
+          description: No Content
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/addresses:
+    post:
+      operationId: createAddress
+      summary: Create a new address with an embedded location
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAddressRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Address"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/addresses/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: getAddress
+      summary: Get an address
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Address"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    put:
+      operationId: updateAddress
+      summary: Update an address and its location
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAddressRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Address"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    delete:
+      operationId: deleteAddress
+      summary: Delete an address
+      responses:
+        "204":
+          description: No Content
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/pets:
+    post:
+      operationId: createPet
+      summary: Create a new pet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePetRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Pet"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/pets/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: getPet
+      summary: Get a pet
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Pet"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    put:
+      operationId: updatePet
+      summary: Update a pet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePetRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Pet"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    delete:
+      operationId: deletePet
+      summary: Delete a pet
+      responses:
+        "204":
+          description: No Content
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/work:
+    post:
+      operationId: createWork
+      summary: Create a new work/organisation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateWorkRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Work"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/work/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: getWork
+      summary: Get a work/organisation
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Work"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    put:
+      operationId: updateWork
+      summary: Update a work/organisation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateWorkRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Work"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    delete:
+      operationId: deleteWork
+      summary: Delete a work/organisation
+      responses:
+        "204":
+          description: No Content
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/config:
+    get:
+      operationId: getConfig
+      summary: Return a safe (redacted) view of the running config
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConfigResponse"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+components:
+  responses:
+    NotFound:
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    BadRequest:
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    InternalError:
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+
+    RelationshipTargetType:
+      type: string
+      enum: [person, address, pet, work]
+      description: The kind of entity a relationship points to.
+
+    BlurryDate:
+      type: object
+      required: [id, reminder_enabled, reminder_days_before]
+      properties:
+        id:
+          type: string
+        year:
+          type: integer
+          nullable: true
+        month:
+          type: integer
+          nullable: true
+          minimum: 1
+          maximum: 12
+        day:
+          type: integer
+          nullable: true
+          minimum: 1
+          maximum: 31
+        reminder_enabled:
+          type: boolean
+        reminder_days_before:
+          type: integer
+          minimum: 0
+
+    BlurryDateInput:
+      type: object
+      required: [reminder_enabled, reminder_days_before]
+      properties:
+        year:
+          type: integer
+          nullable: true
+        month:
+          type: integer
+          nullable: true
+          minimum: 1
+          maximum: 12
+        day:
+          type: integer
+          nullable: true
+          minimum: 1
+          maximum: 31
+        reminder_enabled:
+          type: boolean
+        reminder_days_before:
+          type: integer
+          minimum: 0
+
+    BlurryLocation:
+      type: object
+      required: [id, country]
+      properties:
+        id:
+          type: string
+        country:
+          type: string
+          minLength: 2
+          maxLength: 2
+        city:
+          type: string
+          nullable: true
+        street:
+          type: string
+          nullable: true
+        latitude:
+          type: number
+          format: double
+          nullable: true
+        longitude:
+          type: number
+          format: double
+          nullable: true
+
+    BlurryLocationInput:
+      type: object
+      required: [country]
+      properties:
+        country:
+          type: string
+          minLength: 2
+          maxLength: 2
+        city:
+          type: string
+          nullable: true
+        street:
+          type: string
+          nullable: true
+        latitude:
+          type: number
+          format: double
+          nullable: true
+        longitude:
+          type: number
+          format: double
+          nullable: true
+
+    PersonSummary:
+      type: object
+      required: [id, name, created_at, updated_at]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        nickname:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    PersonDetail:
+      type: object
+      required: [id, name, created_at, updated_at, contact_methods, interactions, relationships]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        nickname:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        birthday:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/BlurryDate"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        contact_methods:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContactMethod"
+        interactions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Interaction"
+        relationships:
+          type: array
+          items:
+            $ref: "#/components/schemas/RelationshipDetail"
+
+    CreatePersonRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        nickname:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        birthday:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/BlurryDateInput"
+
+    UpdatePersonRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        nickname:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        birthday:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/BlurryDateInput"
+
+    ContactMethod:
+      type: object
+      required: [id, person_id, type, value, created_at]
+      properties:
+        id:
+          type: string
+        person_id:
+          type: string
+        type:
+          type: string
+          enum: [email, phone, social, website]
+        value:
+          type: string
+        label:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    CreateContactMethodRequest:
+      type: object
+      required: [type, value]
+      properties:
+        type:
+          type: string
+          enum: [email, phone, social, website]
+        value:
+          type: string
+          minLength: 1
+        label:
+          type: string
+          nullable: true
+
+    Interaction:
+      type: object
+      required: [id, person_id, occurred_at, created_at]
+      properties:
+        id:
+          type: string
+        person_id:
+          type: string
+        occurred_at:
+          type: string
+          format: date-time
+        channel:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    CreateInteractionRequest:
+      type: object
+      required: [occurred_at]
+      properties:
+        occurred_at:
+          type: string
+          format: date-time
+        channel:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+
+    Relationship:
+      type: object
+      required: [id, person_id, to_type, to_id, label, created_at]
+      properties:
+        id:
+          type: string
+        person_id:
+          type: string
+        to_type:
+          $ref: "#/components/schemas/RelationshipTargetType"
+        to_id:
+          type: string
+        label:
+          type: string
+        since:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/BlurryDate"
+        until:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/BlurryDate"
+        notes:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    RelationshipDetail:
+      type: object
+      required: [id, person_id, to_type, to_id, to_name, label, created_at]
+      properties:
+        id:
+          type: string
+        person_id:
+          type: string
+        to_type:
+          $ref: "#/components/schemas/RelationshipTargetType"
+        to_id:
+          type: string
+        to_name:
+          type: string
+        label:
+          type: string
+        since:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/BlurryDate"
+        until:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/BlurryDate"
+        notes:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    CreateRelationshipRequest:
+      type: object
+      required: [person_id, to_type, to_id, label]
+      properties:
+        person_id:
+          type: string
+        to_type:
+          $ref: "#/components/schemas/RelationshipTargetType"
+        to_id:
+          type: string
+        label:
+          type: string
+          minLength: 1
+        since:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/BlurryDateInput"
+        until:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/BlurryDateInput"
+        notes:
+          type: string
+          nullable: true
+
+    Address:
+      type: object
+      required: [id, location, created_at]
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        location:
+          $ref: "#/components/schemas/BlurryLocation"
+        created_at:
+          type: string
+          format: date-time
+
+    CreateAddressRequest:
+      type: object
+      required: [location]
+      properties:
+        label:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        location:
+          $ref: "#/components/schemas/BlurryLocationInput"
+
+    UpdateAddressRequest:
+      type: object
+      required: [location]
+      properties:
+        label:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        location:
+          $ref: "#/components/schemas/BlurryLocationInput"
+
+    Pet:
+      type: object
+      required: [id, name, created_at]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        notes:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    CreatePetRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        notes:
+          type: string
+          nullable: true
+
+    UpdatePetRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        notes:
+          type: string
+          nullable: true
+
+    Work:
+      type: object
+      required: [id, name, created_at]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        website:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    CreateWorkRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        website:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+
+    UpdateWorkRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        website:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+
+    ConfigResponse:
+      type: object
+      required: [listen, db_path, reminder_email, reminder_send_time, reminder_timezone]
+      properties:
+        listen:
+          type: string
+        db_path:
+          type: string
+        reminder_email:
+          type: string
+        reminder_send_time:
+          type: string
+        reminder_timezone:
+          type: string
