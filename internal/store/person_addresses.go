@@ -56,7 +56,10 @@ func ListPersonAddresses(ctx context.Context, db *sql.DB, personID string) ([]Pe
 		}
 		out = append(out, row)
 	}
-	return out, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("store.ListPersonAddresses: %w", err)
+	}
+	return out, nil
 }
 
 // GetPersonAddressRow fetches a single address relationship for a person by
