@@ -121,3 +121,13 @@ const (
 	// RelationshipTargetWork links a person to a work/organisation.
 	RelationshipTargetWork RelationshipTarget = "work"
 )
+
+// ReminderHistory records the outcome of a daily reminder digest attempt.
+type ReminderHistory struct {
+	ID        string
+	SentAt    time.Time
+	Status    string  // "success" | "failure"
+	Error     *string // nil on success
+	DateStart time.Time // calendar date; time component is always zero
+	DateEnd   time.Time // calendar date; time component is always zero
+}
