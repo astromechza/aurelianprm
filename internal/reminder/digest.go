@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/astromechza/aurelianprm/internal/model"
@@ -42,8 +43,12 @@ func ComputeReminders(ctx context.Context, sqlDB *sql.DB, triggerDate time.Time,
 		}
 
 		item, ok, err := resolveItem(ctx, sqlDB, bd, candidateDate)
-		if err != nil || !ok {
-			continue // orphaned or unresolvable — skip silently
+		if err != nil {
+			log.Printf("reminder: resolving blurry_date %s: %v", bd.ID, err)
+			continue
+		}
+		if !ok {
+			continue // orphaned — silently skip
 		}
 		items = append(items, item)
 	}

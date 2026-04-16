@@ -4,9 +4,6 @@ import (
 	"fmt"
 	"strings"
 	"time"
-
-	"github.com/astromechza/aurelianprm/internal/config"
-	"github.com/astromechza/aurelianprm/internal/mailer"
 )
 
 // DayReminders groups reminder items that were due on a particular trigger date.
@@ -65,7 +62,3 @@ func sameDay(a, b time.Time) bool {
 	return ay == by && am == bm && ad == bd
 }
 
-// SendDigest sends the formatted digest email via the configured SMTP server.
-func SendDigest(cfg config.SMTP, to, subject, body string) error {
-	return mailer.Send(cfg, to, subject, body)
-}

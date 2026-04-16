@@ -39,6 +39,9 @@ type Scheduler struct {
 // or SendTime is not in "HH:MM" format — both are configuration errors that
 // should be caught at startup.
 func NewScheduler(cfg Config) *Scheduler {
+	if cfg.Timezone == "" {
+		panic("reminder.NewScheduler: timezone must not be empty")
+	}
 	tz, err := time.LoadLocation(cfg.Timezone)
 	if err != nil {
 		panic(fmt.Sprintf("reminder.NewScheduler: invalid timezone %q: %v", cfg.Timezone, err))
@@ -51,6 +54,9 @@ func NewScheduler(cfg Config) *Scheduler {
 	minute, err2 := strconv.Atoi(parts[1])
 	if err1 != nil || err2 != nil {
 		panic(fmt.Sprintf("reminder.NewScheduler: invalid send_time %q, expected HH:MM", cfg.SendTime))
+	}
+	if hour < 0 || hour > 23 || minute < 0 || minute > 59 {
+		panic(fmt.Sprintf("reminder.NewScheduler: send_time %q out of range, expected HH:MM", cfg.SendTime))
 	}
 	return &Scheduler{
 		db:         cfg.DB,
