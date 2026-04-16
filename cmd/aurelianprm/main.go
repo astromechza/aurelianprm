@@ -18,6 +18,7 @@ import (
 	"github.com/astromechza/aurelianprm/assets"
 	"github.com/astromechza/aurelianprm/internal/config"
 	"github.com/astromechza/aurelianprm/internal/db"
+	"github.com/astromechza/aurelianprm/internal/mailer"
 	"github.com/astromechza/aurelianprm/internal/web"
 )
 
@@ -186,11 +187,22 @@ func runSendTestEmail(args []string) error {
 		return errors.New("--config flag is required")
 	}
 
-	_, err := config.Load(*configPath)
+	cfg, err := config.Load(*configPath)
 	if err != nil {
 		return err
 	}
 
-	// TODO: Phase 5 — implement SMTP email sending.
-	return errors.New("send-test-email not yet implemented (phase 5)")
+	subject := "AurelianPRM — test email"
+	body := fmt.Sprintf("This is a test email from AurelianPRM.\n\nSMTP host: %s:%d\nFrom: %s\nTo: %s\n",
+		cfg.SMTP.Host, cfg.SMTP.Port, cfg.SMTP.From, cfg.ReminderEmail)
+
+	fmt.Fprintf(os.Stderr, "Sending test email to %s via %s:%d...\n",
+		cfg.ReminderEmail, cfg.SMTP.Host, cfg.SMTP.Port)
+
+	if err := mailer.Send(cfg.SMTP, cfg.ReminderEmail, subject, body); err != nil {
+		return fmt.Errorf("sending email: %w", err)
+	}
+
+	fmt.Fprintln(os.Stderr, "Test email sent successfully.")
+	return nil
 }

@@ -65,7 +65,7 @@ func TestRun_SendTestEmailValidConfig(t *testing.T) {
 
 	err := run([]string{"send-test-email", "--config", path})
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "not yet implemented")
+	assert.Contains(t, err.Error(), "sending email:")
 }
 
 func TestRun_HashPassword_EmptyStdin(t *testing.T) {
