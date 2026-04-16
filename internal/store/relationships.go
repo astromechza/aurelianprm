@@ -63,6 +63,22 @@ func DeleteRelationship(ctx context.Context, db *sql.DB, id string) error {
 	return nil
 }
 
+// UpdateRelationshipDates updates the since_id and until_id foreign keys on a
+// relationships row without changing any other fields.
+func UpdateRelationshipDates(ctx context.Context, db *sql.DB, id string, sinceID, untilID *string) error {
+	res, err := db.ExecContext(ctx,
+		`UPDATE relationships SET since_id = ?, until_id = ? WHERE id = ?`,
+		nullString(sinceID), nullString(untilID), id,
+	)
+	if err != nil {
+		return fmt.Errorf("store.UpdateRelationshipDates: %w", err)
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return fmt.Errorf("store.UpdateRelationshipDates: %w", sql.ErrNoRows)
+	}
+	return nil
+}
+
 func scanRelationships(rows *sql.Rows) ([]model.Relationship, error) {
 	var out []model.Relationship
 	for rows.Next() {
