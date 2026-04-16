@@ -10,12 +10,13 @@ import (
 
 // Templates holds the parsed template set for the application.
 type Templates struct {
-	tmpl *template.Template
+	tmpl      *template.Template
+	buildInfo BuildInfo
 }
 
 // ParseTemplates parses all templates from the given filesystem.
 // It panics (via template.Must) if any template is malformed.
-func ParseTemplates(fsys fs.FS) *Templates {
+func ParseTemplates(fsys fs.FS, info BuildInfo) *Templates {
 	return &Templates{
 		tmpl: template.Must(template.New("").Funcs(template.FuncMap{
 			// deref dereferences a *string, returning "" for nil.
@@ -26,13 +27,15 @@ func ParseTemplates(fsys fs.FS) *Templates {
 				return *s
 			},
 		}).ParseFS(fsys, "templates/*.html")),
+		buildInfo: info,
 	}
 }
 
 // baseData is passed to base.html for full-page renders.
 type baseData struct {
-	Content template.HTML // pre-rendered fragment, safe to embed
-	Data    any           // original data, available to base layout if needed
+	Content   template.HTML // pre-rendered fragment, safe to embed
+	Data      any           // original data, available to base layout if needed
+	BuildInfo BuildInfo
 }
 
 // Render writes a template response. If the request carries an HX-Request
@@ -58,8 +61,9 @@ func (t *Templates) Render(w http.ResponseWriter, r *http.Request, fragment stri
 	}
 
 	if err := t.tmpl.ExecuteTemplate(w, "base.html", baseData{
-		Content: template.HTML(buf.String()), //nolint:gosec // content is produced by our own templates
-		Data:    data,
+		Content:   template.HTML(buf.String()), //nolint:gosec // content is produced by our own templates
+		Data:      data,
+		BuildInfo: t.buildInfo,
 	}); err != nil {
 		http.Error(w, fmt.Sprintf("template error: %v", err), http.StatusInternalServerError)
 	}

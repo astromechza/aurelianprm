@@ -10,6 +10,7 @@ import (
 	"os/signal"
 	"runtime/debug"
 	"syscall"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/term"
@@ -72,35 +73,44 @@ Flags:
   --help       Show this help`)
 }
 
-// buildVersion returns the version string including VCS commit info.
-func buildVersion() string {
-	commit := "unknown"
-	built := "unknown"
-
-	if info, ok := debug.ReadBuildInfo(); ok {
-		for _, s := range info.Settings {
-			switch s.Key {
-			case "vcs.revision":
-				c := s.Value
-				if len(c) > 7 {
-					c = c[:7]
-				}
-				commit = c
-			case "vcs.modified":
-				if s.Value == "true" {
-					commit += "-dirty"
-				}
-			case "vcs.time":
-				built = s.Value
+// parseBuildInfo returns the short commit hash (with -dirty suffix if applicable)
+// and the build timestamp from VCS stamping embedded by the Go toolchain.
+func parseBuildInfo() (commit, built string) {
+	commit = "unknown"
+	built = "unknown"
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		return
+	}
+	for _, s := range info.Settings {
+		switch s.Key {
+		case "vcs.revision":
+			c := s.Value
+			if len(c) > 7 {
+				c = c[:7]
 			}
+			commit = c
+		case "vcs.modified":
+			if s.Value == "true" {
+				commit += "-dirty"
+			}
+		case "vcs.time":
+			built = s.Value
 		}
 	}
+	return
+}
 
+// buildVersion returns the version string including VCS commit info.
+func buildVersion() string {
+	commit, built := parseBuildInfo()
 	return fmt.Sprintf("aurelianprm %s (commit: %s, built: %s)", version, commit, built)
 }
 
 // runServe starts the HTTP server.
 func runServe(args []string) error {
+	startTime := time.Now()
+
 	fs := flag.NewFlagSet("serve", flag.ContinueOnError)
 	configPath := fs.String("config", "", "path to JSON config file (required)")
 	if err := fs.Parse(args); err != nil {
@@ -121,10 +131,17 @@ func runServe(args []string) error {
 	}
 	defer sqlDB.Close() //nolint:errcheck
 
+	commit, buildTime := parseBuildInfo()
 	srv, err := web.New(web.Config{
 		Listen:       cfg.Listen,
 		PasswordHash: cfg.AuthPasswordHash,
 		AppConfig:    cfg,
+		BuildInfo: web.BuildInfo{
+			Version:   version,
+			Commit:    commit,
+			BuildTime: buildTime,
+			StartTime: startTime,
+		},
 	}, sqlDB, assets.FS)
 	if err != nil {
 		return fmt.Errorf("creating server: %w", err)

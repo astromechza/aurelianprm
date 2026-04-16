@@ -23,7 +23,7 @@
     {{.Content}}
   </main>
   <footer class="container">
-    <small>AurelianPRM</small>
+    <small>AurelianPRM {{.BuildInfo.Version}} ({{.BuildInfo.Commit}}) &mdash; built {{.BuildInfo.BuildTime}} &mdash; started {{.BuildInfo.StartTime.Format "2006-01-02 15:04:05"}} UTC</small>
   </footer>
 </body>
 </html>

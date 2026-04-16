@@ -14,12 +14,21 @@ import (
 	"github.com/astromechza/aurelianprm/internal/config"
 )
 
+// BuildInfo holds version and runtime metadata displayed in the UI footer.
+type BuildInfo struct {
+	Version   string
+	Commit    string
+	BuildTime string
+	StartTime time.Time
+}
+
 // Server holds the HTTP server and its dependencies.
 type Server struct {
 	http      *http.Server
 	handler   http.Handler
 	templates *Templates
 	db        *sql.DB
+	buildInfo BuildInfo
 }
 
 // New constructs a Server, wires all routes, and wraps all routes (including
@@ -29,11 +38,12 @@ type Server struct {
 // NOTE: deploy behind TLS in production — Basic Auth transmits credentials in
 // base64 which is trivially decoded without transport encryption.
 func New(cfg Config, database *sql.DB, rootFS fs.FS) (*Server, error) {
-	templates := ParseTemplates(rootFS)
+	templates := ParseTemplates(rootFS, cfg.BuildInfo)
 
 	s := &Server{
 		templates: templates,
 		db:        database,
+		buildInfo: cfg.BuildInfo,
 	}
 
 	staticSub, err := fs.Sub(rootFS, "static")
@@ -97,6 +107,7 @@ type Config struct {
 	Listen       string
 	PasswordHash string
 	AppConfig    *config.Config
+	BuildInfo    BuildInfo
 }
 
 // ListenAndServe starts the HTTP server and blocks until ctx is cancelled.
