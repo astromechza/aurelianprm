@@ -19,6 +19,7 @@ import (
 	"github.com/astromechza/aurelianprm/internal/config"
 	"github.com/astromechza/aurelianprm/internal/db"
 	"github.com/astromechza/aurelianprm/internal/mailer"
+	"github.com/astromechza/aurelianprm/internal/reminder"
 	"github.com/astromechza/aurelianprm/internal/web"
 )
 
@@ -150,6 +151,21 @@ func runServe(args []string) error {
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
+
+	// Start the daily reminder scheduler goroutine.
+	sched := reminder.NewScheduler(reminder.Config{
+		DB: sqlDB,
+		SendFunc: func(subject, body string) error {
+			return mailer.Send(cfg.SMTP, cfg.ReminderEmail, subject, body)
+		},
+		SendTime: cfg.ReminderSendTime,
+		Timezone: cfg.ReminderTimezone,
+	})
+	go func() {
+		if err := sched.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
+			fmt.Fprintf(os.Stderr, "reminder scheduler: %v\n", err)
+		}
+	}()
 
 	return srv.ListenAndServe(ctx)
 }
