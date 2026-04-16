@@ -72,21 +72,25 @@ func TestDeleteOldReminderHistory(t *testing.T) {
 	ctx := context.Background()
 	db := openTestDB(t)
 
-	old := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-	recent := time.Date(2026, 4, 16, 0, 0, 0, 0, time.UTC)
+	// Insert directly with explicit sent_at to control which records are "old".
+	_, err := db.ExecContext(ctx, `
+		INSERT INTO reminder_history (id, sent_at, status, date_start, date_end)
+		VALUES ('old-id', '2026-01-01T00:00:00.000Z', 'success', '2026-01-01', '2026-01-01')`,
+	)
+	require.NoError(t, err)
 
-	require.NoError(t, store.CreateReminderHistory(ctx, db, model.ReminderHistory{
-		Status: "success", DateStart: old, DateEnd: old,
-	}))
-	require.NoError(t, store.CreateReminderHistory(ctx, db, model.ReminderHistory{
-		Status: "success", DateStart: recent, DateEnd: recent,
-	}))
+	_, err = db.ExecContext(ctx, `
+		INSERT INTO reminder_history (id, sent_at, status, date_start, date_end)
+		VALUES ('recent-id', '2026-04-16T00:00:00.000Z', 'success', '2026-04-16', '2026-04-16')`,
+	)
+	require.NoError(t, err)
 
+	// Delete records sent before March 1 — only the old one should go.
 	cutoff := time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)
 	require.NoError(t, store.DeleteOldReminderHistory(ctx, db, cutoff))
 
 	got, err := store.GetLastSuccessfulSend(ctx, db)
 	require.NoError(t, err)
 	require.NotNil(t, got)
-	assert.Equal(t, recent, got.DateStart)
+	assert.Equal(t, time.Date(2026, 4, 16, 0, 0, 0, 0, time.UTC), got.DateStart)
 }

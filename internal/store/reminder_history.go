@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
@@ -96,7 +97,7 @@ func GetLastSuccessfulSend(ctx context.Context, db *sql.DB) (*model.ReminderHist
 		ORDER BY sent_at DESC, rowid DESC LIMIT 1`
 	row := db.QueryRowContext(ctx, q)
 	h, err := scanReminderHistory(row)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -105,11 +106,11 @@ func GetLastSuccessfulSend(ctx context.Context, db *sql.DB) (*model.ReminderHist
 	return &h, nil
 }
 
-// DeleteOldReminderHistory deletes reminder_history rows whose date_start is before the given time.
+// DeleteOldReminderHistory deletes reminder_history rows whose sent_at is before the given time.
 func DeleteOldReminderHistory(ctx context.Context, db *sql.DB, before time.Time) error {
 	_, err := db.ExecContext(ctx,
-		`DELETE FROM reminder_history WHERE date_start < ?`,
-		before.UTC().Format(dateOnlyLayout),
+		`DELETE FROM reminder_history WHERE sent_at < strftime('%Y-%m-%dT%H:%M:%fZ', ?)`,
+		before.UTC().Format(timeLayout),
 	)
 	if err != nil {
 		return fmt.Errorf("store.DeleteOldReminderHistory: %w", err)
@@ -130,7 +131,11 @@ func scanReminderHistory(row *sql.Row) (model.ReminderHistory, error) {
 		return model.ReminderHistory{}, fmt.Errorf("parsing sent_at: %w", err)
 	}
 	h.Error = scanNullString(errStr)
-	h.DateStart, _ = time.Parse(dateOnlyLayout, dateStart)
-	h.DateEnd, _ = time.Parse(dateOnlyLayout, dateEnd)
+	if h.DateStart, err = time.Parse(dateOnlyLayout, dateStart); err != nil {
+		return model.ReminderHistory{}, fmt.Errorf("parsing date_start: %w", err)
+	}
+	if h.DateEnd, err = time.Parse(dateOnlyLayout, dateEnd); err != nil {
+		return model.ReminderHistory{}, fmt.Errorf("parsing date_end: %w", err)
+	}
 	return h, nil
 }
