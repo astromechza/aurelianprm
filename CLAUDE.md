@@ -33,6 +33,7 @@ Spec: `docs/superpowers/specs/` — read this before making significant changes.
 - All phases must pass `go build`, `golangci-lint run`, and `go test -race -cover ./...` before marking complete
 - If the spec needs updating due to implementation findings, update `docs/superpowers/specs/` and commit alongside the code change
 - Templates are parsed eagerly at startup via `template.Must` — a unit test also parses all templates to catch errors in CI
+- **Keep `CHANGELOG.md` updated**: add entries to the `[Unreleased]` section as features are implemented. Use Keep a Changelog conventions (`Added`, `Changed`, `Fixed`, `Removed`). Update the changelog in the same commit as the feature code.
 
 ## Testing
 

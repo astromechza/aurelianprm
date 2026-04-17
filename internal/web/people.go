@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/astromechza/aurelianprm/internal/model"
@@ -19,13 +20,35 @@ type peopleListData struct {
 	Query  string
 }
 
+// addressCardData is passed to address_card.html.
+type addressCardData struct {
+	PersonID        string
+	Row             store.PersonAddressRow
+	LocationDisplay string // e.g. "42 Baker St, London, UK"
+	SinceDisplay    string // e.g. "March 2021", empty if not set
+	UntilDisplay    string // e.g. "December 2023", empty if not set
+}
+
+// addressEditData is passed to address_edit_form.html.
+type addressEditData struct {
+	PersonID  string
+	Row       store.PersonAddressRow
+	FromYear  string // pre-formatted for <input value>, e.g. "2021" or ""
+	FromMonth string // pre-formatted for <input value>, e.g. "3" or ""
+	ToYear    string
+	ToMonth   string
+	Error     string
+}
+
 // personDetailData is passed to people_detail.html.
 type personDetailData struct {
-	Person          model.Person
-	BirthdayDisplay string // pre-formatted, empty if no birthday
-	ContactMethods  []model.ContactMethod
-	Interactions    []model.Interaction
-	Relationships   []relationshipRow
+	Person           model.Person
+	BirthdayDisplay  string // pre-formatted, empty if no birthday
+	ContactMethods   []model.ContactMethod
+	Interactions     []model.Interaction
+	Relationships    []relationshipRow
+	CurrentAddresses []addressCardData // relationships where until_id IS NULL
+	PastAddresses    []addressCardData // relationships where until_id IS NOT NULL
 }
 
 // relationshipRow pairs a Relationship with its resolved target display name.
@@ -82,10 +105,12 @@ func (s *Server) handlePersonDetail(w http.ResponseWriter, r *http.Request) {
 // template data struct.
 func (s *Server) buildPersonDetailData(ctx context.Context, p model.Person) (personDetailData, error) {
 	data := personDetailData{
-		Person:         p,
-		ContactMethods: []model.ContactMethod{},
-		Interactions:   []model.Interaction{},
-		Relationships:  []relationshipRow{},
+		Person:           p,
+		ContactMethods:   []model.ContactMethod{},
+		Interactions:     []model.Interaction{},
+		Relationships:    []relationshipRow{},
+		CurrentAddresses: []addressCardData{},
+		PastAddresses:    []addressCardData{},
 	}
 
 	if p.BirthdayID != nil {
@@ -124,6 +149,19 @@ func (s *Server) buildPersonDetailData(ctx context.Context, p model.Person) (per
 			ToName:       name,
 		})
 	}
+	addrs, err := store.ListPersonAddresses(ctx, s.db, p.ID)
+	if err != nil {
+		return personDetailData{}, fmt.Errorf("loading addresses: %w", err)
+	}
+	for _, addr := range addrs {
+		card := buildAddressCardData(p.ID, addr)
+		if addr.UntilID == nil {
+			data.CurrentAddresses = append(data.CurrentAddresses, card)
+		} else {
+			data.PastAddresses = append(data.PastAddresses, card)
+		}
+	}
+
 	return data, nil
 }
 
@@ -438,6 +476,40 @@ func updateBlurryDate(ctx context.Context, db *sql.DB, input *model.BlurryDate, 
 		return nil, err
 	}
 	return &created.ID, nil
+}
+
+// formatLocation builds a comma-separated display string for a BlurryLocation,
+// omitting blank optional parts.
+func formatLocation(loc model.BlurryLocation) string {
+	var parts []string
+	if loc.Street != nil && *loc.Street != "" {
+		parts = append(parts, *loc.Street)
+	}
+	if loc.City != nil && *loc.City != "" {
+		parts = append(parts, *loc.City)
+	}
+	parts = append(parts, loc.Country)
+	return strings.Join(parts, ", ")
+}
+
+// formatMonthYear returns a human-readable month+year string (e.g. "March 2021").
+// Returns an empty string if both inputs are nil.
+func formatMonthYear(year, month *int) string {
+	if year == nil && month == nil {
+		return ""
+	}
+	return formatBlurryDate(model.BlurryDate{Year: year, Month: month})
+}
+
+// buildAddressCardData assembles display data for the address_card.html template.
+func buildAddressCardData(personID string, row store.PersonAddressRow) addressCardData {
+	return addressCardData{
+		PersonID:        personID,
+		Row:             row,
+		LocationDisplay: formatLocation(row.Location),
+		SinceDisplay:    formatMonthYear(row.SinceYear, row.SinceMonth),
+		UntilDisplay:    formatMonthYear(row.UntilYear, row.UntilMonth),
+	}
 }
 
 // formatBlurryDate produces a human-readable string from a BlurryDate.

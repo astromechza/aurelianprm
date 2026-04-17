@@ -17,6 +17,66 @@
 {{if .BirthdayDisplay}}<p><strong>Birthday:</strong> {{.BirthdayDisplay}}</p>{{end}}
 
 <article>
+  <header><strong>Addresses</strong></header>
+  <div id="addresses-current">
+    {{range .CurrentAddresses}}{{template "address_card.html" .}}{{end}}
+  </div>
+  {{if .PastAddresses}}
+  <details>
+    <summary>Past addresses ({{len .PastAddresses}})</summary>
+    <div id="addresses-past">
+      {{range .PastAddresses}}{{template "address_card.html" .}}{{end}}
+    </div>
+  </details>
+  {{end}}
+  <details>
+    <summary>Add address</summary>
+    <form hx-post="/people/{{.Person.ID}}/addresses"
+          hx-target="#addresses-current"
+          hx-swap="beforeend"
+          hx-on::after-request="this.reset()">
+      <div class="grid">
+        <label>Country *
+          <input name="country" required>
+        </label>
+        <label>City
+          <input name="city">
+        </label>
+      </div>
+      <label>Street
+        <input name="street">
+      </label>
+      <div class="grid">
+        <label>Label
+          <input name="label" placeholder="e.g. home, work">
+        </label>
+        <label>Notes
+          <input name="notes">
+        </label>
+      </div>
+      <fieldset>
+        <legend>Dates (optional)</legend>
+        <div class="grid">
+          <label>Move-in year
+            <input type="number" name="from_year" min="1900" max="2100">
+          </label>
+          <label>Move-in month
+            <input type="number" name="from_month" min="1" max="12">
+          </label>
+          <label>Move-out year
+            <input type="number" name="to_year" min="1900" max="2100">
+          </label>
+          <label>Move-out month
+            <input type="number" name="to_month" min="1" max="12">
+          </label>
+        </div>
+      </fieldset>
+      <button type="submit">Add</button>
+    </form>
+  </details>
+</article>
+
+<article>
   <header><strong>Contact Methods</strong></header>
   <table>
     <tbody id="contact-methods-list">
