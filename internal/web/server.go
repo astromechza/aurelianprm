@@ -72,6 +72,13 @@ func New(cfg Config, database *sql.DB, rootFS fs.FS) (*Server, error) {
 	protected.HandleFunc("POST /people/{id}/relationships", s.handleRelationshipCreate)
 	protected.HandleFunc("DELETE /relationships/{id}", s.handleRelationshipDelete)
 
+	// Address routes
+	protected.HandleFunc("GET /people/{id}/addresses/{addr_id}", s.handleAddressCard)
+	protected.HandleFunc("GET /people/{id}/addresses/{addr_id}/edit", s.handleAddressEditForm)
+	protected.HandleFunc("POST /people/{id}/addresses/{addr_id}/edit", s.handleAddressUpdate)
+	protected.HandleFunc("POST /people/{id}/addresses", s.handleAddressCreate)
+	protected.HandleFunc("DELETE /people/{id}/addresses/{addr_id}", s.handleAddressDelete)
+
 	// Mount API handlers
 	apiHandlers := api.NewHandlers(database, cfg.AppConfig)
 	strictHandler := api.NewStrictHandler(apiHandlers, nil)

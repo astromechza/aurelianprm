@@ -31,8 +31,6 @@ type addressCardData struct {
 
 // addressEditData is passed to address_edit_form.html.
 // Used by handlers in addresses.go (same package).
-//
-//nolint:unused
 type addressEditData struct {
 	PersonID  string
 	Row       store.PersonAddressRow
