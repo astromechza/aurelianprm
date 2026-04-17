@@ -3,6 +3,7 @@
   <div class="flex-between">
     <div>
       {{if .Row.Address.Label}}<strong>{{deref .Row.Address.Label}}</strong> &mdash; {{end}}{{.LocationDisplay}}
+      <a href="https://www.openstreetmap.org/search?query={{urlquery .LocationDisplay}}" target="_blank" rel="noopener" title="View on OpenStreetMap">🌍</a>
       {{if or .SinceDisplay .UntilDisplay}}
       <br><small>
         {{- if and .SinceDisplay .UntilDisplay}}{{.SinceDisplay}} &ndash; {{.UntilDisplay}}
