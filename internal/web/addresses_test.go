@@ -177,6 +177,27 @@ func TestAddressCard_CancelRestoresCard(t *testing.T) {
 	assert.Contains(t, rec.Body.String(), "Toronto, CA")
 }
 
+func TestAddressUpdate_MissingCountry_ReturnsForm(t *testing.T) {
+	srv := newWebTestServer(t)
+	personID := createPersonForTest(t, srv, "Ivan")
+
+	rec := doHTMX(t, srv, http.MethodPost, "/people/"+personID+"/addresses", url.Values{
+		"country": {"UK"},
+		"city":    {"Bristol"},
+	})
+	require.Equal(t, http.StatusOK, rec.Code)
+	addrID := extractAddrID(t, rec.Body.String(), personID)
+
+	// Submit edit with empty country — should re-render the edit form with an error.
+	rec = doHTMX(t, srv, http.MethodPost, "/people/"+personID+"/addresses/"+addrID+"/edit", url.Values{
+		"country": {""},
+	})
+	assert.Equal(t, http.StatusOK, rec.Code)
+	body := rec.Body.String()
+	assert.Contains(t, body, "Country is required")
+	assert.Contains(t, body, `<form `) // edit form, not card
+}
+
 func TestAddressDelete_WrongPerson_NotFound(t *testing.T) {
 	srv := newWebTestServer(t)
 	person1ID := createPersonForTest(t, srv, "Ivan")

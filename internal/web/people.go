@@ -285,7 +285,8 @@ func (s *Server) handlePersonUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newBirthdayID, err := updateBlurryDate(r.Context(), s.db, parseBirthdayForm(r), existing.BirthdayID)
+	oldBirthdayID := existing.BirthdayID
+	newBirthdayID, err := applyBlurryDateCreate(r.Context(), s.db, parseBirthdayForm(r), existing.BirthdayID)
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
@@ -299,6 +300,10 @@ func (s *Server) handlePersonUpdate(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
+	// Delete orphaned blurry_date only after the FK has been NULLed by UpdatePerson.
+	if oldBirthdayID != nil && newBirthdayID == nil {
+		_ = store.DeleteBlurryDate(r.Context(), s.db, *oldBirthdayID)
+	}
 	http.Redirect(w, r, "/people/"+id, http.StatusSeeOther)
 }
 
@@ -310,12 +315,14 @@ func (s *Server) handlePersonDelete(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
-	if err == nil && existing.BirthdayID != nil {
-		_ = store.DeleteBlurryDate(r.Context(), s.db, *existing.BirthdayID)
-	}
+	birthdayID := existing.BirthdayID
 	if err := store.DeletePerson(r.Context(), s.db, id); err != nil && !errors.Is(err, sql.ErrNoRows) {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
+	}
+	// Delete orphaned blurry_date only after the FK reference in people is gone.
+	if err == nil && birthdayID != nil {
+		_ = store.DeleteBlurryDate(r.Context(), s.db, *birthdayID)
 	}
 	http.Redirect(w, r, "/people", http.StatusSeeOther)
 }
@@ -453,30 +460,6 @@ func parseBirthdayForm(r *http.Request) *model.BlurryDate {
 		bd.Day = &v
 	}
 	return bd
-}
-
-// updateBlurryDate handles the create/update/delete lifecycle for a blurry date.
-func updateBlurryDate(ctx context.Context, db *sql.DB, input *model.BlurryDate, existingID *string) (*string, error) {
-	if input == nil {
-		if existingID != nil {
-			if err := store.DeleteBlurryDate(ctx, db, *existingID); err != nil && !errors.Is(err, sql.ErrNoRows) {
-				return nil, err
-			}
-		}
-		return nil, nil
-	}
-	if existingID != nil {
-		input.ID = *existingID
-		if err := store.UpdateBlurryDate(ctx, db, *input); err != nil {
-			return nil, err
-		}
-		return existingID, nil
-	}
-	created, err := store.CreateBlurryDate(ctx, db, *input)
-	if err != nil {
-		return nil, err
-	}
-	return &created.ID, nil
 }
 
 // formatLocation builds a comma-separated display string for a BlurryLocation,

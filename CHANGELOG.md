@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **FK ordering bug in `handlePersonDelete`**: blurry_date for birthday was deleted before the `people` row FK reference was removed, causing a silent orphan (SQLite FK enforcement blocked the delete, error was swallowed). Fixed by deleting the person first, then cleaning up the orphaned blurry_date.
+- **FK ordering bug in `handlePersonUpdate` (clear birthday)**: clearing a birthday called `updateBlurryDate` which deleted the blurry_date row before `UpdatePerson` NULLed the FK, causing a FK violation and HTTP 500. Fixed by using the `applyBlurryDateCreate` + deferred-delete pattern (same as address handlers). Added `TestPersonUpdate_ClearBirthday` to cover this path.
+
 ### Added
 
 - **Addresses on person detail page**: inline card display, accordion add-form, inline edit-form row-swap via HTMX, and delete. Current and past addresses (by until date) displayed separately. (`internal/store/person_addresses.go`, `internal/web/addresses.go`, `assets/templates/addresses.html`)

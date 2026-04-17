@@ -323,3 +323,31 @@ func TestPersonDelete_CleansUpBirthday(t *testing.T) {
 	rec3 := doWeb(t, srv, http.MethodGet, "/people/"+id, nil)
 	assert.Equal(t, http.StatusNotFound, rec3.Code)
 }
+
+func TestPersonUpdate_ClearBirthday(t *testing.T) {
+	srv := newWebTestServer(t)
+
+	// Create a person with a birthday.
+	rec := doWeb(t, srv, http.MethodPost, "/people/new", url.Values{
+		"name":          {"Karl"},
+		"birthday_year": {"1985"},
+		"birthday_month": {"4"},
+		"birthday_day":  {"20"},
+	})
+	id := strings.TrimPrefix(rec.Header().Get("Location"), "/people/")
+
+	// Verify birthday shows on detail page.
+	detail := doWeb(t, srv, http.MethodGet, "/people/"+id, nil)
+	assert.Contains(t, detail.Body.String(), "1985")
+
+	// Update person without birthday fields — should clear birthday.
+	rec2 := doWeb(t, srv, http.MethodPost, "/people/"+id+"/edit", url.Values{
+		"name": {"Karl"},
+		// no birthday_year/month/day = clear birthday
+	})
+	require.Equal(t, http.StatusSeeOther, rec2.Code)
+
+	// Birthday should no longer show on detail page.
+	detail2 := doWeb(t, srv, http.MethodGet, "/people/"+id, nil)
+	assert.NotContains(t, detail2.Body.String(), "1985")
+}
