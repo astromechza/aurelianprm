@@ -41,18 +41,18 @@ func TestAddressCreate_Success(t *testing.T) {
 	personID := createPersonForTest(t, srv, "Alice")
 
 	rec := doHTMX(t, srv, http.MethodPost, "/people/"+personID+"/addresses", url.Values{
-		"country": {"UK"},
+		"country": {"GB"},
 		"city":    {"London"},
 		"label":   {"home"},
 	})
 	assert.Equal(t, http.StatusOK, rec.Code)
 	body := rec.Body.String()
-	assert.Contains(t, body, "London, UK")
+	assert.Contains(t, body, "London, GB")
 	assert.Contains(t, body, "home")
 
 	// Person detail page shows the address.
 	detail := doWeb(t, srv, http.MethodGet, "/people/"+personID, nil)
-	assert.Contains(t, detail.Body.String(), "London, UK")
+	assert.Contains(t, detail.Body.String(), "London, GB")
 }
 
 func TestAddressCreate_WithDates(t *testing.T) {
@@ -104,7 +104,7 @@ func TestAddressUpdate_Success(t *testing.T) {
 	personID := createPersonForTest(t, srv, "Eve")
 
 	rec := doHTMX(t, srv, http.MethodPost, "/people/"+personID+"/addresses", url.Values{
-		"country": {"UK"},
+		"country": {"GB"},
 	})
 	require.Equal(t, http.StatusOK, rec.Code)
 	addrID := extractAddrID(t, rec.Body.String(), personID)
@@ -182,7 +182,7 @@ func TestAddressUpdate_MissingCountry_ReturnsForm(t *testing.T) {
 	personID := createPersonForTest(t, srv, "Ivan")
 
 	rec := doHTMX(t, srv, http.MethodPost, "/people/"+personID+"/addresses", url.Values{
-		"country": {"UK"},
+		"country": {"GB"},
 		"city":    {"Bristol"},
 	})
 	require.Equal(t, http.StatusOK, rec.Code)

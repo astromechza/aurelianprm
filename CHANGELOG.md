@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Country field on address forms is now validated against ISO 3166-1 alpha-2 codes (via `golang.org/x/text` CLDR data). Lowercase input is normalised to uppercase. Invalid codes return HTTP 422. The form includes a `<datalist>` with all ~280 valid codes sorted by country name.
+- "Street" label on address forms renamed to "Street address".
+- Optional date fields (move-in/move-out year and month) now show `placeholder="unknown"`.
+
 ### Fixed
 
 - **FK ordering bug in `handlePersonDelete`**: blurry_date for birthday was deleted before the `people` row FK reference was removed, causing a silent orphan (SQLite FK enforcement blocked the delete, error was swallowed). Fixed by deleting the person first, then cleaning up the orphaned blurry_date.

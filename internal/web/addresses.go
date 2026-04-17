@@ -66,6 +66,10 @@ func (s *Server) handleAddressCreate(w http.ResponseWriter, r *http.Request) {
 		City:    nullableFormValue(r, "city"),
 		Street:  nullableFormValue(r, "street"),
 	})
+	if errors.Is(err, store.ErrInvalidCountry) {
+		http.Error(w, "country must be a 2-letter ISO code (e.g. GB, DE, US)", http.StatusUnprocessableEntity)
+		return
+	}
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
@@ -156,7 +160,10 @@ func (s *Server) handleAddressUpdate(w http.ResponseWriter, r *http.Request) {
 	loc.Country = country
 	loc.City = nullableFormValue(r, "city")
 	loc.Street = nullableFormValue(r, "street")
-	if err := store.UpdateBlurryLocation(r.Context(), s.db, loc); err != nil {
+	if err := store.UpdateBlurryLocation(r.Context(), s.db, loc); errors.Is(err, store.ErrInvalidCountry) {
+		s.templates.Render(w, r, "address_edit_form.html", buildAddressEditData(personID, row, "Country must be a 2-letter ISO code (e.g. GB, DE, US)."))
+		return
+	} else if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}

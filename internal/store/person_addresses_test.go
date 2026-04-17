@@ -33,7 +33,7 @@ func TestListPersonAddresses_CurrentAndPast(t *testing.T) {
 
 	// Current address — no until_id.
 	city1 := "London"
-	loc1, err := store.CreateBlurryLocation(ctx, db, model.BlurryLocation{Country: "UK", City: &city1})
+	loc1, err := store.CreateBlurryLocation(ctx, db, model.BlurryLocation{Country: "GB", City: &city1})
 	require.NoError(t, err)
 	lbl1 := "home"
 	addr1, err := store.CreateAddress(ctx, db, model.Address{LocationID: loc1.ID, Label: &lbl1})
@@ -70,7 +70,7 @@ func TestListPersonAddresses_CurrentAndPast(t *testing.T) {
 	current := rows[0]
 	assert.Equal(t, addr1.ID, current.Address.ID)
 	assert.Nil(t, current.UntilID)
-	assert.Equal(t, "UK", current.Location.Country)
+	assert.Equal(t, "GB", current.Location.Country)
 	assert.Equal(t, &yr1, current.SinceYear)
 	assert.Equal(t, &mo1, current.SinceMonth)
 	assert.Nil(t, current.UntilYear)

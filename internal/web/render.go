@@ -6,6 +6,9 @@ import (
 	"html/template"
 	"io/fs"
 	"net/http"
+	"sort"
+
+	"github.com/astromechza/aurelianprm/internal/store"
 )
 
 // Templates holds the parsed template set for the application.
@@ -17,6 +20,17 @@ type Templates struct {
 // ParseTemplates parses all templates from the given filesystem.
 // It panics (via template.Must) if any template is malformed.
 func ParseTemplates(fsys fs.FS, info BuildInfo) *Templates {
+	// countryCodes returns a sorted slice of {Code, Name} for use in datalists.
+	type countryOption struct{ Code, Name string }
+	countryCodes := func() []countryOption {
+		out := make([]countryOption, 0, len(store.Countries))
+		for code, name := range store.Countries {
+			out = append(out, countryOption{code, name})
+		}
+		sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
+		return out
+	}
+
 	return &Templates{
 		tmpl: template.Must(template.New("").Funcs(template.FuncMap{
 			// deref dereferences a *string, returning "" for nil.
@@ -26,6 +40,8 @@ func ParseTemplates(fsys fs.FS, info BuildInfo) *Templates {
 				}
 				return *s
 			},
+			// countryCodes returns all valid ISO 3166-1 alpha-2 codes sorted by name.
+			"countryCodes": countryCodes,
 		}).ParseFS(fsys, "templates/*.html")),
 		buildInfo: info,
 	}

@@ -3,13 +3,34 @@ package store
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/astromechza/aurelianprm/internal/model"
 )
 
+// ErrInvalidCountry is returned when a country code is not a recognised
+// ISO 3166-1 alpha-2 code (e.g. "GB", "DE", "US").
+var ErrInvalidCountry = errors.New("country must be a recognised ISO 3166-1 alpha-2 code")
+
+// normalizeCountry uppercases and validates a country string against the
+// Countries map built from golang.org/x/text CLDR data.
+func normalizeCountry(s string) (string, error) {
+	s = strings.ToUpper(strings.TrimSpace(s))
+	if _, ok := Countries[s]; !ok {
+		return "", ErrInvalidCountry
+	}
+	return s, nil
+}
+
 // CreateBlurryLocation inserts a new blurry_locations row and returns it with its generated ID.
 func CreateBlurryLocation(ctx context.Context, db *sql.DB, l model.BlurryLocation) (model.BlurryLocation, error) {
+	country, err := normalizeCountry(l.Country)
+	if err != nil {
+		return model.BlurryLocation{}, fmt.Errorf("store.CreateBlurryLocation: %w", err)
+	}
+	l.Country = country
 	l.ID = newID()
 	const q = `
 		INSERT INTO blurry_locations (id, country, city, street, latitude, longitude)
@@ -38,6 +59,11 @@ func GetBlurryLocation(ctx context.Context, db *sql.DB, id string) (model.Blurry
 
 // UpdateBlurryLocation replaces all mutable fields of a blurry_locations row.
 func UpdateBlurryLocation(ctx context.Context, db *sql.DB, l model.BlurryLocation) error {
+	country, err := normalizeCountry(l.Country)
+	if err != nil {
+		return fmt.Errorf("store.UpdateBlurryLocation: %w", err)
+	}
+	l.Country = country
 	const q = `
 		UPDATE blurry_locations
 		SET country = ?, city = ?, street = ?, latitude = ?, longitude = ?

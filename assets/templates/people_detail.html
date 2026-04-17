@@ -37,13 +37,14 @@
           hx-on::after-request="this.reset()">
       <div class="grid">
         <label>Country *
-          <input name="country" required>
+          <input name="country" list="country-codes"
+                 title="2-letter ISO country code (e.g. GB, DE, US)" required>
         </label>
         <label>City
           <input name="city">
         </label>
       </div>
-      <label>Street
+      <label>Street address
         <input name="street">
       </label>
       <div class="grid">
@@ -58,16 +59,16 @@
         <legend>Dates (optional)</legend>
         <div class="grid">
           <label>Move-in year
-            <input type="number" name="from_year" min="1900" max="2100">
+            <input type="number" name="from_year" min="1900" max="2100" placeholder="unknown">
           </label>
           <label>Move-in month
-            <input type="number" name="from_month" min="1" max="12">
+            <input type="number" name="from_month" min="1" max="12" placeholder="unknown">
           </label>
           <label>Move-out year
-            <input type="number" name="to_year" min="1900" max="2100">
+            <input type="number" name="to_year" min="1900" max="2100" placeholder="unknown">
           </label>
           <label>Move-out month
-            <input type="number" name="to_month" min="1" max="12">
+            <input type="number" name="to_month" min="1" max="12" placeholder="unknown">
           </label>
         </div>
       </fieldset>

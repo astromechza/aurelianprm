@@ -22,6 +22,12 @@
   <main class="container">
     {{.Content}}
   </main>
+  {{- $codes := countryCodes}}
+  {{- if $codes}}
+  <datalist id="country-codes">
+    {{- range $codes}}<option value="{{.Code}}">{{.Name}}</option>{{end}}
+  </datalist>
+  {{- end}}
   <footer class="container">
     <small>AurelianPRM {{.BuildInfo.Version}} ({{.BuildInfo.Commit}}) &mdash; built {{.BuildInfo.BuildTime}} &mdash; started {{.BuildInfo.StartTime.Format "2006-01-02 15:04:05"}} UTC</small>
   </footer>

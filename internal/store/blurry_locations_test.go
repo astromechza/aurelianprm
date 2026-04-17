@@ -56,6 +56,23 @@ func TestBlurryLocation_CRUD(t *testing.T) {
 	assert.ErrorIs(t, err, sql.ErrNoRows)
 }
 
+func TestBlurryLocation_InvalidCountry(t *testing.T) {
+	ctx := context.Background()
+	db := openTestDB(t)
+
+	// Invalid: wrong length, digits, freeform names, or not in ISO 3166-1 alpha-2.
+	cases := []string{"", "GBR", "1B", "United Kingdom", "ZZ", "XX", "QQ"}
+	for _, c := range cases {
+		_, err := store.CreateBlurryLocation(ctx, db, model.BlurryLocation{Country: c})
+		assert.ErrorIs(t, err, store.ErrInvalidCountry, "expected error for %q", c)
+	}
+
+	// Lowercase is normalised to uppercase and accepted if the code is valid.
+	created, err := store.CreateBlurryLocation(ctx, db, model.BlurryLocation{Country: "gb"})
+	require.NoError(t, err)
+	assert.Equal(t, "GB", created.Country)
+}
+
 func TestBlurryLocation_UpdateNotFound(t *testing.T) {
 	ctx := context.Background()
 	db := openTestDB(t)
