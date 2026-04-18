@@ -219,22 +219,24 @@ func (s *Server) handlePersonCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var birthdayID *string
-	if bd := parseBirthdayForm(r); bd != nil {
-		created, err := store.CreateBlurryDate(r.Context(), s.db, *bd)
-		if err != nil {
-			http.Error(w, "internal error", http.StatusInternalServerError)
-			return
+	var p model.Person
+	if err := store.WithTx(r.Context(), s.db, func(tx store.DBTX) error {
+		if bd := parseBirthdayForm(r); bd != nil {
+			created, err := store.CreateBlurryDate(r.Context(), tx, *bd)
+			if err != nil {
+				return err
+			}
+			birthdayID = &created.ID
 		}
-		birthdayID = &created.ID
-	}
-
-	p, err := store.CreatePerson(r.Context(), s.db, model.Person{
-		Name:       name,
-		Nickname:   nullableFormValue(r, "nickname"),
-		Notes:      nullableFormValue(r, "notes"),
-		BirthdayID: birthdayID,
-	})
-	if err != nil {
+		var err error
+		p, err = store.CreatePerson(r.Context(), tx, model.Person{
+			Name:       name,
+			Nickname:   nullableFormValue(r, "nickname"),
+			Notes:      nullableFormValue(r, "notes"),
+			BirthdayID: birthdayID,
+		})
+		return err
+	}); err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
@@ -286,17 +288,21 @@ func (s *Server) handlePersonUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	oldBirthdayID := existing.BirthdayID
-	newBirthdayID, err := applyBlurryDateCreate(r.Context(), s.db, parseBirthdayForm(r), existing.BirthdayID)
+	var newBirthdayID *string
+	err = store.WithTx(r.Context(), s.db, func(tx store.DBTX) error {
+		var err error
+		newBirthdayID, err = applyBlurryDateCreate(r.Context(), tx, parseBirthdayForm(r), existing.BirthdayID)
+		if err != nil {
+			return err
+		}
+		existing.Name = name
+		existing.Nickname = nullableFormValue(r, "nickname")
+		existing.Notes = nullableFormValue(r, "notes")
+		existing.BirthdayID = newBirthdayID
+		_, err = store.UpdatePerson(r.Context(), tx, existing)
+		return err
+	})
 	if err != nil {
-		http.Error(w, "internal error", http.StatusInternalServerError)
-		return
-	}
-
-	existing.Name = name
-	existing.Nickname = nullableFormValue(r, "nickname")
-	existing.Notes = nullableFormValue(r, "notes")
-	existing.BirthdayID = newBirthdayID
-	if _, err := store.UpdatePerson(r.Context(), s.db, existing); err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
@@ -316,12 +322,15 @@ func (s *Server) handlePersonDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	birthdayID := existing.BirthdayID
-	if err := store.DeletePerson(r.Context(), s.db, id); err != nil && !errors.Is(err, sql.ErrNoRows) {
+	txErr := store.WithTx(r.Context(), s.db, func(tx store.DBTX) error {
+		return store.DeletePerson(r.Context(), tx, id)
+	})
+	if txErr != nil && !errors.Is(txErr, sql.ErrNoRows) {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
 	// Delete orphaned blurry_date only after the FK reference in people is gone.
-	if err == nil && birthdayID != nil {
+	if txErr == nil && birthdayID != nil {
 		_ = store.DeleteBlurryDate(r.Context(), s.db, *birthdayID)
 	}
 	http.Redirect(w, r, "/people", http.StatusSeeOther)

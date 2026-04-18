@@ -9,7 +9,7 @@ import (
 )
 
 // CreateInteraction inserts a new interactions row and returns it with its generated ID.
-func CreateInteraction(ctx context.Context, db *sql.DB, i model.Interaction) (model.Interaction, error) {
+func CreateInteraction(ctx context.Context, db DBTX, i model.Interaction) (model.Interaction, error) {
 	i.ID = newID()
 	i.CreatedAt = now()
 	const q = `
@@ -27,7 +27,7 @@ func CreateInteraction(ctx context.Context, db *sql.DB, i model.Interaction) (mo
 }
 
 // ListInteractions returns all interactions for a person, newest first.
-func ListInteractions(ctx context.Context, db *sql.DB, personID string) ([]model.Interaction, error) {
+func ListInteractions(ctx context.Context, db DBTX, personID string) ([]model.Interaction, error) {
 	const q = `
 		SELECT id, person_id, occurred_at, channel, notes, created_at
 		FROM interactions WHERE person_id = ? ORDER BY occurred_at DESC`
@@ -62,7 +62,7 @@ func ListInteractions(ctx context.Context, db *sql.DB, personID string) ([]model
 }
 
 // DeleteInteraction removes an interactions row by ID.
-func DeleteInteraction(ctx context.Context, db *sql.DB, id string) error {
+func DeleteInteraction(ctx context.Context, db DBTX, id string) error {
 	res, err := db.ExecContext(ctx, `DELETE FROM interactions WHERE id = ?`, id)
 	if err != nil {
 		return fmt.Errorf("store.DeleteInteraction: %w", err)

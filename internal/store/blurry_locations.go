@@ -25,7 +25,7 @@ func normalizeCountry(s string) (string, error) {
 }
 
 // CreateBlurryLocation inserts a new blurry_locations row and returns it with its generated ID.
-func CreateBlurryLocation(ctx context.Context, db *sql.DB, l model.BlurryLocation) (model.BlurryLocation, error) {
+func CreateBlurryLocation(ctx context.Context, db DBTX, l model.BlurryLocation) (model.BlurryLocation, error) {
 	country, err := normalizeCountry(l.Country)
 	if err != nil {
 		return model.BlurryLocation{}, fmt.Errorf("store.CreateBlurryLocation: %w", err)
@@ -45,7 +45,7 @@ func CreateBlurryLocation(ctx context.Context, db *sql.DB, l model.BlurryLocatio
 }
 
 // GetBlurryLocation fetches a single blurry_locations row by ID.
-func GetBlurryLocation(ctx context.Context, db *sql.DB, id string) (model.BlurryLocation, error) {
+func GetBlurryLocation(ctx context.Context, db DBTX, id string) (model.BlurryLocation, error) {
 	const q = `
 		SELECT id, country, city, street, latitude, longitude
 		FROM blurry_locations WHERE id = ?`
@@ -58,7 +58,7 @@ func GetBlurryLocation(ctx context.Context, db *sql.DB, id string) (model.Blurry
 }
 
 // UpdateBlurryLocation replaces all mutable fields of a blurry_locations row.
-func UpdateBlurryLocation(ctx context.Context, db *sql.DB, l model.BlurryLocation) error {
+func UpdateBlurryLocation(ctx context.Context, db DBTX, l model.BlurryLocation) error {
 	country, err := normalizeCountry(l.Country)
 	if err != nil {
 		return fmt.Errorf("store.UpdateBlurryLocation: %w", err)
@@ -82,7 +82,7 @@ func UpdateBlurryLocation(ctx context.Context, db *sql.DB, l model.BlurryLocatio
 }
 
 // DeleteBlurryLocation removes a blurry_locations row by ID.
-func DeleteBlurryLocation(ctx context.Context, db *sql.DB, id string) error {
+func DeleteBlurryLocation(ctx context.Context, db DBTX, id string) error {
 	res, err := db.ExecContext(ctx, `DELETE FROM blurry_locations WHERE id = ?`, id)
 	if err != nil {
 		return fmt.Errorf("store.DeleteBlurryLocation: %w", err)

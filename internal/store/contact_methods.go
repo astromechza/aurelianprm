@@ -9,7 +9,7 @@ import (
 )
 
 // CreateContactMethod inserts a new contact_methods row and returns it with its generated ID.
-func CreateContactMethod(ctx context.Context, db *sql.DB, cm model.ContactMethod) (model.ContactMethod, error) {
+func CreateContactMethod(ctx context.Context, db DBTX, cm model.ContactMethod) (model.ContactMethod, error) {
 	cm.ID = newID()
 	cm.CreatedAt = now()
 	const q = `
@@ -25,7 +25,7 @@ func CreateContactMethod(ctx context.Context, db *sql.DB, cm model.ContactMethod
 }
 
 // ListContactMethods returns all contact methods for the given person, ordered by created_at.
-func ListContactMethods(ctx context.Context, db *sql.DB, personID string) ([]model.ContactMethod, error) {
+func ListContactMethods(ctx context.Context, db DBTX, personID string) ([]model.ContactMethod, error) {
 	const q = `
 		SELECT id, person_id, type, value, label, created_at
 		FROM contact_methods WHERE person_id = ? ORDER BY created_at`
@@ -56,7 +56,7 @@ func ListContactMethods(ctx context.Context, db *sql.DB, personID string) ([]mod
 }
 
 // DeleteContactMethod removes a contact_methods row by ID.
-func DeleteContactMethod(ctx context.Context, db *sql.DB, id string) error {
+func DeleteContactMethod(ctx context.Context, db DBTX, id string) error {
 	res, err := db.ExecContext(ctx, `DELETE FROM contact_methods WHERE id = ?`, id)
 	if err != nil {
 		return fmt.Errorf("store.DeleteContactMethod: %w", err)

@@ -61,52 +61,56 @@ func (s *Server) handleAddressCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	loc, err := store.CreateBlurryLocation(r.Context(), s.db, model.BlurryLocation{
-		Country: country,
-		City:    nullableFormValue(r, "city"),
-		Street:  nullableFormValue(r, "street"),
+	sinceBD := parseMonthYearForm(r, "from_year", "from_month")
+	untilBD := parseMonthYearForm(r, "to_year", "to_month")
+
+	var (
+		loc     model.BlurryLocation
+		addr    model.Address
+		rel     model.Relationship
+		sinceID *string
+		untilID *string
+	)
+	txErr := store.WithTx(r.Context(), s.db, func(tx store.DBTX) error {
+		var err error
+		loc, err = store.CreateBlurryLocation(r.Context(), tx, model.BlurryLocation{
+			Country: country,
+			City:    nullableFormValue(r, "city"),
+			Street:  nullableFormValue(r, "street"),
+		})
+		if err != nil {
+			return err
+		}
+		addr, err = store.CreateAddress(r.Context(), tx, model.Address{
+			LocationID: loc.ID,
+			Label:      nullableFormValue(r, "label"),
+			Notes:      nullableFormValue(r, "notes"),
+		})
+		if err != nil {
+			return err
+		}
+		sinceID, err = createOptionalBlurryDate(r.Context(), tx, sinceBD)
+		if err != nil {
+			return err
+		}
+		untilID, err = createOptionalBlurryDate(r.Context(), tx, untilBD)
+		if err != nil {
+			return err
+		}
+		rel, err = store.CreateRelationship(r.Context(), tx, model.Relationship{
+			PersonID: personID,
+			ToType:   model.RelationshipTargetAddress,
+			ToID:     addr.ID,
+			SinceID:  sinceID,
+			UntilID:  untilID,
+		})
+		return err
 	})
-	if errors.Is(err, store.ErrInvalidCountry) {
+	if errors.Is(txErr, store.ErrInvalidCountry) {
 		http.Error(w, "country must be a 2-letter ISO code (e.g. GB, DE, US)", http.StatusUnprocessableEntity)
 		return
 	}
-	if err != nil {
-		http.Error(w, "internal error", http.StatusInternalServerError)
-		return
-	}
-
-	addr, err := store.CreateAddress(r.Context(), s.db, model.Address{
-		LocationID: loc.ID,
-		Label:      nullableFormValue(r, "label"),
-		Notes:      nullableFormValue(r, "notes"),
-	})
-	if err != nil {
-		http.Error(w, "internal error", http.StatusInternalServerError)
-		return
-	}
-
-	sinceBD := parseMonthYearForm(r, "from_year", "from_month")
-	sinceID, err := createOptionalBlurryDate(r, s, sinceBD)
-	if err != nil {
-		http.Error(w, "internal error", http.StatusInternalServerError)
-		return
-	}
-
-	untilBD := parseMonthYearForm(r, "to_year", "to_month")
-	untilID, err := createOptionalBlurryDate(r, s, untilBD)
-	if err != nil {
-		http.Error(w, "internal error", http.StatusInternalServerError)
-		return
-	}
-
-	rel, err := store.CreateRelationship(r.Context(), s.db, model.Relationship{
-		PersonID: personID,
-		ToType:   model.RelationshipTargetAddress,
-		ToID:     addr.ID,
-		SinceID:  sinceID,
-		UntilID:  untilID,
-	})
-	if err != nil {
+	if txErr != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
@@ -156,26 +160,6 @@ func (s *Server) handleAddressUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	loc := row.Location
-	loc.Country = country
-	loc.City = nullableFormValue(r, "city")
-	loc.Street = nullableFormValue(r, "street")
-	if err := store.UpdateBlurryLocation(r.Context(), s.db, loc); errors.Is(err, store.ErrInvalidCountry) {
-		s.templates.Render(w, r, "address_edit_form.html", buildAddressEditData(personID, row, "Country must be a 2-letter ISO code (e.g. GB, DE, US)."))
-		return
-	} else if err != nil {
-		http.Error(w, "internal error", http.StatusInternalServerError)
-		return
-	}
-
-	addr := row.Address
-	addr.Label = nullableFormValue(r, "label")
-	addr.Notes = nullableFormValue(r, "notes")
-	if err := store.UpdateAddress(r.Context(), s.db, addr); err != nil {
-		http.Error(w, "internal error", http.StatusInternalServerError)
-		return
-	}
-
 	// Compute new blurry-date IDs. To avoid FK violations when clearing a date
 	// (FK still points at the old row), we must NULL the relationship FK before
 	// deleting the old blurry_date rows. We therefore:
@@ -185,23 +169,45 @@ func (s *Server) handleAddressUpdate(w http.ResponseWriter, r *http.Request) {
 	newSinceBD := parseMonthYearForm(r, "from_year", "from_month")
 	newUntilBD := parseMonthYearForm(r, "to_year", "to_month")
 
-	newSinceID, err := applyBlurryDateCreate(r.Context(), s.db, newSinceBD, row.SinceID)
-	if err != nil {
-		http.Error(w, "internal error", http.StatusInternalServerError)
+	var newSinceID, newUntilID *string
+	txErr := store.WithTx(r.Context(), s.db, func(tx store.DBTX) error {
+		loc := row.Location
+		loc.Country = country
+		loc.City = nullableFormValue(r, "city")
+		loc.Street = nullableFormValue(r, "street")
+		if err := store.UpdateBlurryLocation(r.Context(), tx, loc); err != nil {
+			return err
+		}
+
+		addr := row.Address
+		addr.Label = nullableFormValue(r, "label")
+		addr.Notes = nullableFormValue(r, "notes")
+		if err := store.UpdateAddress(r.Context(), tx, addr); err != nil {
+			return err
+		}
+
+		var err error
+		newSinceID, err = applyBlurryDateCreate(r.Context(), tx, newSinceBD, row.SinceID)
+		if err != nil {
+			return err
+		}
+		newUntilID, err = applyBlurryDateCreate(r.Context(), tx, newUntilBD, row.UntilID)
+		if err != nil {
+			return err
+		}
+
+		return store.UpdateRelationshipDates(r.Context(), tx, row.RelationshipID, newSinceID, newUntilID)
+	})
+	if errors.Is(txErr, store.ErrInvalidCountry) {
+		s.templates.Render(w, r, "address_edit_form.html", buildAddressEditData(personID, row, "Country must be a 2-letter ISO code (e.g. GB, DE, US)."))
 		return
 	}
-	newUntilID, err := applyBlurryDateCreate(r.Context(), s.db, newUntilBD, row.UntilID)
-	if err != nil {
+	if txErr != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
 
-	if err := store.UpdateRelationshipDates(r.Context(), s.db, row.RelationshipID, newSinceID, newUntilID); err != nil {
-		http.Error(w, "internal error", http.StatusInternalServerError)
-		return
-	}
-
-	// Now safe to delete orphaned blurry_date rows (FK is already NULLed).
+	// Now safe to delete orphaned blurry_date rows (FK is already NULLed by UpdateRelationshipDates).
 	if newSinceBD == nil && row.SinceID != nil {
 		_ = store.DeleteBlurryDate(r.Context(), s.db, *row.SinceID)
 	}
@@ -233,21 +239,28 @@ func (s *Server) handleAddressDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := store.DeleteRelationship(r.Context(), s.db, row.RelationshipID); err != nil && !errors.Is(err, sql.ErrNoRows) {
-		http.Error(w, "internal error", http.StatusInternalServerError)
-		return
-	}
-	if row.SinceID != nil {
-		_ = store.DeleteBlurryDate(r.Context(), s.db, *row.SinceID)
-	}
-	if row.UntilID != nil {
-		_ = store.DeleteBlurryDate(r.Context(), s.db, *row.UntilID)
-	}
-	if err := store.DeleteAddress(r.Context(), s.db, addrID); err != nil && !errors.Is(err, sql.ErrNoRows) {
-		http.Error(w, "internal error", http.StatusInternalServerError)
-		return
-	}
-	if err := store.DeleteBlurryLocation(r.Context(), s.db, row.Location.ID); err != nil && !errors.Is(err, sql.ErrNoRows) {
+	if err := store.WithTx(r.Context(), s.db, func(tx store.DBTX) error {
+		if err := store.DeleteRelationship(r.Context(), tx, row.RelationshipID); err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return err
+		}
+		if row.SinceID != nil {
+			if err := store.DeleteBlurryDate(r.Context(), tx, *row.SinceID); err != nil && !errors.Is(err, sql.ErrNoRows) {
+				return err
+			}
+		}
+		if row.UntilID != nil {
+			if err := store.DeleteBlurryDate(r.Context(), tx, *row.UntilID); err != nil && !errors.Is(err, sql.ErrNoRows) {
+				return err
+			}
+		}
+		if err := store.DeleteAddress(r.Context(), tx, addrID); err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return err
+		}
+		if err := store.DeleteBlurryLocation(r.Context(), tx, row.Location.ID); err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return err
+		}
+		return nil
+	}); err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
@@ -292,11 +305,11 @@ func buildAddressEditData(personID string, row store.PersonAddressRow, errMsg st
 
 // createOptionalBlurryDate creates a blurry_date row if bd is non-nil and
 // returns its ID. Returns nil, nil when bd is nil.
-func createOptionalBlurryDate(r *http.Request, s *Server, bd *model.BlurryDate) (*string, error) {
+func createOptionalBlurryDate(ctx context.Context, db store.DBTX, bd *model.BlurryDate) (*string, error) {
 	if bd == nil {
 		return nil, nil
 	}
-	created, err := store.CreateBlurryDate(r.Context(), s.db, *bd)
+	created, err := store.CreateBlurryDate(ctx, db, *bd)
 	if err != nil {
 		return nil, err
 	}
@@ -309,7 +322,7 @@ func createOptionalBlurryDate(r *http.Request, s *Server, bd *model.BlurryDate) 
 //   - input == nil  → return nil (caller must delete old row after NULLing FK)
 //   - input != nil, existingID != nil → update in-place, return existingID
 //   - input != nil, existingID == nil → create new row, return new ID
-func applyBlurryDateCreate(ctx context.Context, db *sql.DB, input *model.BlurryDate, existingID *string) (*string, error) {
+func applyBlurryDateCreate(ctx context.Context, db store.DBTX, input *model.BlurryDate, existingID *string) (*string, error) {
 	if input == nil {
 		return nil, nil
 	}

@@ -38,7 +38,7 @@ const personAddressSelect = `
 // ListPersonAddresses returns all address relationships for a person, ordered
 // by the relationship's created_at time. Returns an empty slice (not nil) when
 // no addresses exist.
-func ListPersonAddresses(ctx context.Context, db *sql.DB, personID string) ([]PersonAddressRow, error) {
+func ListPersonAddresses(ctx context.Context, db DBTX, personID string) ([]PersonAddressRow, error) {
 	q := personAddressSelect + `
 	WHERE r.person_id = ? AND r.to_type = 'address'
 	ORDER BY r.created_at`
@@ -64,7 +64,7 @@ func ListPersonAddresses(ctx context.Context, db *sql.DB, personID string) ([]Pe
 
 // GetPersonAddressRow fetches a single address relationship for a person by
 // address ID. Returns sql.ErrNoRows (wrapped) if no match is found.
-func GetPersonAddressRow(ctx context.Context, db *sql.DB, personID, addrID string) (PersonAddressRow, error) {
+func GetPersonAddressRow(ctx context.Context, db DBTX, personID, addrID string) (PersonAddressRow, error) {
 	q := personAddressSelect + `
 	WHERE r.person_id = ? AND r.to_id = ? AND r.to_type = 'address'`
 	row := db.QueryRowContext(ctx, q, personID, addrID)

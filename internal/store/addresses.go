@@ -9,7 +9,7 @@ import (
 )
 
 // CreateAddress inserts a new addresses row and returns it with its generated ID.
-func CreateAddress(ctx context.Context, db *sql.DB, a model.Address) (model.Address, error) {
+func CreateAddress(ctx context.Context, db DBTX, a model.Address) (model.Address, error) {
 	a.ID = newID()
 	a.CreatedAt = now()
 	const q = `
@@ -25,7 +25,7 @@ func CreateAddress(ctx context.Context, db *sql.DB, a model.Address) (model.Addr
 }
 
 // GetAddress fetches a single addresses row by ID.
-func GetAddress(ctx context.Context, db *sql.DB, id string) (model.Address, error) {
+func GetAddress(ctx context.Context, db DBTX, id string) (model.Address, error) {
 	const q = `SELECT id, location_id, label, notes, created_at FROM addresses WHERE id = ?`
 	row := db.QueryRowContext(ctx, q, id)
 	a, err := scanAddress(row)
@@ -36,7 +36,7 @@ func GetAddress(ctx context.Context, db *sql.DB, id string) (model.Address, erro
 }
 
 // UpdateAddress replaces all mutable fields of an addresses row.
-func UpdateAddress(ctx context.Context, db *sql.DB, a model.Address) error {
+func UpdateAddress(ctx context.Context, db DBTX, a model.Address) error {
 	const q = `UPDATE addresses SET location_id = ?, label = ?, notes = ? WHERE id = ?`
 	res, err := db.ExecContext(ctx, q, a.LocationID, nullString(a.Label), nullString(a.Notes), a.ID)
 	if err != nil {
@@ -49,7 +49,7 @@ func UpdateAddress(ctx context.Context, db *sql.DB, a model.Address) error {
 }
 
 // DeleteAddress removes an addresses row by ID.
-func DeleteAddress(ctx context.Context, db *sql.DB, id string) error {
+func DeleteAddress(ctx context.Context, db DBTX, id string) error {
 	res, err := db.ExecContext(ctx, `DELETE FROM addresses WHERE id = ?`, id)
 	if err != nil {
 		return fmt.Errorf("store.DeleteAddress: %w", err)

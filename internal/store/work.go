@@ -9,7 +9,7 @@ import (
 )
 
 // CreateWork inserts a new work row and returns it with its generated ID.
-func CreateWork(ctx context.Context, db *sql.DB, w model.Work) (model.Work, error) {
+func CreateWork(ctx context.Context, db DBTX, w model.Work) (model.Work, error) {
 	w.ID = newID()
 	w.CreatedAt = now()
 	const q = `
@@ -25,7 +25,7 @@ func CreateWork(ctx context.Context, db *sql.DB, w model.Work) (model.Work, erro
 }
 
 // GetWork fetches a single work row by ID.
-func GetWork(ctx context.Context, db *sql.DB, id string) (model.Work, error) {
+func GetWork(ctx context.Context, db DBTX, id string) (model.Work, error) {
 	const q = `SELECT id, name, website, notes, created_at FROM work WHERE id = ?`
 	row := db.QueryRowContext(ctx, q, id)
 	w, err := scanWork(row)
@@ -36,7 +36,7 @@ func GetWork(ctx context.Context, db *sql.DB, id string) (model.Work, error) {
 }
 
 // UpdateWork replaces all mutable fields of a work row.
-func UpdateWork(ctx context.Context, db *sql.DB, w model.Work) error {
+func UpdateWork(ctx context.Context, db DBTX, w model.Work) error {
 	const q = `UPDATE work SET name = ?, website = ?, notes = ? WHERE id = ?`
 	res, err := db.ExecContext(ctx, q, w.Name, nullString(w.Website), nullString(w.Notes), w.ID)
 	if err != nil {
@@ -49,7 +49,7 @@ func UpdateWork(ctx context.Context, db *sql.DB, w model.Work) error {
 }
 
 // DeleteWork removes a work row by ID.
-func DeleteWork(ctx context.Context, db *sql.DB, id string) error {
+func DeleteWork(ctx context.Context, db DBTX, id string) error {
 	res, err := db.ExecContext(ctx, `DELETE FROM work WHERE id = ?`, id)
 	if err != nil {
 		return fmt.Errorf("store.DeleteWork: %w", err)

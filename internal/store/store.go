@@ -11,6 +11,31 @@ import (
 	"github.com/google/uuid"
 )
 
+// DBTX is satisfied by both *sql.DB and *sql.Tx, allowing store functions to
+// participate in caller-managed transactions.
+type DBTX interface {
+	ExecContext(context.Context, string, ...any) (sql.Result, error)
+	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
+	QueryRowContext(context.Context, string, ...any) *sql.Row
+}
+
+// WithTx runs fn inside a serialisable transaction on db.
+// If fn returns an error the transaction is rolled back; otherwise it is committed.
+func WithTx(ctx context.Context, db *sql.DB, fn func(DBTX) error) error {
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("store.WithTx: begin: %w", err)
+	}
+	if err := fn(tx); err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("store.WithTx: commit: %w", err)
+	}
+	return nil
+}
+
 // newID generates a new random UUID string.
 func newID() string {
 	return uuid.New().String()
@@ -93,7 +118,7 @@ func parseTime(s string) (time.Time, error) {
 // sql.Result. RowsAffected is not checked because INSERT failures (e.g. FK
 // violations, UNIQUE conflicts) always surface as a non-nil error from
 // modernc/sqlite — a silent zero-rows insert cannot occur.
-func execContext(ctx context.Context, db *sql.DB, query string, args ...any) error {
+func execContext(ctx context.Context, db DBTX, query string, args ...any) error {
 	_, err := db.ExecContext(ctx, query, args...)
 	return err
 }

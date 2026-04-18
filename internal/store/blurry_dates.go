@@ -9,7 +9,7 @@ import (
 )
 
 // CreateBlurryDate inserts a new blurry_dates row and returns it with its generated ID.
-func CreateBlurryDate(ctx context.Context, db *sql.DB, d model.BlurryDate) (model.BlurryDate, error) {
+func CreateBlurryDate(ctx context.Context, db DBTX, d model.BlurryDate) (model.BlurryDate, error) {
 	d.ID = newID()
 	const q = `
 		INSERT INTO blurry_dates (id, year, month, day, reminder_enabled, reminder_days_before)
@@ -24,7 +24,7 @@ func CreateBlurryDate(ctx context.Context, db *sql.DB, d model.BlurryDate) (mode
 }
 
 // GetBlurryDate fetches a single blurry_dates row by ID.
-func GetBlurryDate(ctx context.Context, db *sql.DB, id string) (model.BlurryDate, error) {
+func GetBlurryDate(ctx context.Context, db DBTX, id string) (model.BlurryDate, error) {
 	const q = `
 		SELECT id, year, month, day, reminder_enabled, reminder_days_before
 		FROM blurry_dates WHERE id = ?`
@@ -37,7 +37,7 @@ func GetBlurryDate(ctx context.Context, db *sql.DB, id string) (model.BlurryDate
 }
 
 // UpdateBlurryDate replaces all mutable fields of a blurry_dates row.
-func UpdateBlurryDate(ctx context.Context, db *sql.DB, d model.BlurryDate) error {
+func UpdateBlurryDate(ctx context.Context, db DBTX, d model.BlurryDate) error {
 	const q = `
 		UPDATE blurry_dates
 		SET year = ?, month = ?, day = ?, reminder_enabled = ?, reminder_days_before = ?
@@ -56,7 +56,7 @@ func UpdateBlurryDate(ctx context.Context, db *sql.DB, d model.BlurryDate) error
 }
 
 // DeleteBlurryDate removes a blurry_dates row by ID.
-func DeleteBlurryDate(ctx context.Context, db *sql.DB, id string) error {
+func DeleteBlurryDate(ctx context.Context, db DBTX, id string) error {
 	res, err := db.ExecContext(ctx, `DELETE FROM blurry_dates WHERE id = ?`, id)
 	if err != nil {
 		return fmt.Errorf("store.DeleteBlurryDate: %w", err)

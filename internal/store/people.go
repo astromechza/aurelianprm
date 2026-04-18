@@ -9,7 +9,7 @@ import (
 )
 
 // CreatePerson inserts a new people row and returns it with generated ID and timestamps.
-func CreatePerson(ctx context.Context, db *sql.DB, p model.Person) (model.Person, error) {
+func CreatePerson(ctx context.Context, db DBTX, p model.Person) (model.Person, error) {
 	p.ID = newID()
 	p.CreatedAt = now()
 	p.UpdatedAt = p.CreatedAt
@@ -27,7 +27,7 @@ func CreatePerson(ctx context.Context, db *sql.DB, p model.Person) (model.Person
 }
 
 // GetPerson fetches a single people row by ID.
-func GetPerson(ctx context.Context, db *sql.DB, id string) (model.Person, error) {
+func GetPerson(ctx context.Context, db DBTX, id string) (model.Person, error) {
 	const q = `
 		SELECT id, name, nickname, notes, birthday_id, created_at, updated_at
 		FROM people WHERE id = ?`
@@ -41,7 +41,7 @@ func GetPerson(ctx context.Context, db *sql.DB, id string) (model.Person, error)
 
 // ListPeople returns all people, optionally filtered by a substring match on name or nickname.
 // An empty query string returns all records ordered by name.
-func ListPeople(ctx context.Context, db *sql.DB, nameQuery string) ([]model.Person, error) {
+func ListPeople(ctx context.Context, db DBTX, nameQuery string) ([]model.Person, error) {
 	var (
 		rows *sql.Rows
 		err  error
@@ -64,7 +64,7 @@ func ListPeople(ctx context.Context, db *sql.DB, nameQuery string) ([]model.Pers
 }
 
 // UpdatePerson replaces all mutable fields of a people row and bumps updated_at.
-func UpdatePerson(ctx context.Context, db *sql.DB, p model.Person) (model.Person, error) {
+func UpdatePerson(ctx context.Context, db DBTX, p model.Person) (model.Person, error) {
 	p.UpdatedAt = now()
 	const q = `
 		UPDATE people
@@ -85,7 +85,7 @@ func UpdatePerson(ctx context.Context, db *sql.DB, p model.Person) (model.Person
 }
 
 // DeletePerson removes a people row by ID (cascades to contact_methods, interactions, relationships).
-func DeletePerson(ctx context.Context, db *sql.DB, id string) error {
+func DeletePerson(ctx context.Context, db DBTX, id string) error {
 	res, err := db.ExecContext(ctx, `DELETE FROM people WHERE id = ?`, id)
 	if err != nil {
 		return fmt.Errorf("store.DeletePerson: %w", err)

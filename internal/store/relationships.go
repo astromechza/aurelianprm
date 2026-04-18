@@ -9,7 +9,7 @@ import (
 )
 
 // CreateRelationship inserts a new relationships row and returns it with its generated ID.
-func CreateRelationship(ctx context.Context, db *sql.DB, r model.Relationship) (model.Relationship, error) {
+func CreateRelationship(ctx context.Context, db DBTX, r model.Relationship) (model.Relationship, error) {
 	r.ID = newID()
 	r.CreatedAt = now()
 	const q = `
@@ -26,7 +26,7 @@ func CreateRelationship(ctx context.Context, db *sql.DB, r model.Relationship) (
 }
 
 // ListRelationships returns all relationships for a person, ordered by created_at.
-func ListRelationships(ctx context.Context, db *sql.DB, personID string) ([]model.Relationship, error) {
+func ListRelationships(ctx context.Context, db DBTX, personID string) ([]model.Relationship, error) {
 	const q = `
 		SELECT id, person_id, to_type, to_id, label, since_id, until_id, notes, created_at
 		FROM relationships WHERE person_id = ? ORDER BY created_at`
@@ -39,7 +39,7 @@ func ListRelationships(ctx context.Context, db *sql.DB, personID string) ([]mode
 }
 
 // ListRelationshipsToEntity returns all relationships pointing to a specific entity.
-func ListRelationshipsToEntity(ctx context.Context, db *sql.DB, toType model.RelationshipTarget, toID string) ([]model.Relationship, error) {
+func ListRelationshipsToEntity(ctx context.Context, db DBTX, toType model.RelationshipTarget, toID string) ([]model.Relationship, error) {
 	const q = `
 		SELECT id, person_id, to_type, to_id, label, since_id, until_id, notes, created_at
 		FROM relationships WHERE to_type = ? AND to_id = ? ORDER BY created_at`
@@ -52,7 +52,7 @@ func ListRelationshipsToEntity(ctx context.Context, db *sql.DB, toType model.Rel
 }
 
 // DeleteRelationship removes a relationships row by ID.
-func DeleteRelationship(ctx context.Context, db *sql.DB, id string) error {
+func DeleteRelationship(ctx context.Context, db DBTX, id string) error {
 	res, err := db.ExecContext(ctx, `DELETE FROM relationships WHERE id = ?`, id)
 	if err != nil {
 		return fmt.Errorf("store.DeleteRelationship: %w", err)
@@ -65,7 +65,7 @@ func DeleteRelationship(ctx context.Context, db *sql.DB, id string) error {
 
 // UpdateRelationshipDates updates the since_id and until_id foreign keys on a
 // relationships row without changing any other fields.
-func UpdateRelationshipDates(ctx context.Context, db *sql.DB, id string, sinceID, untilID *string) error {
+func UpdateRelationshipDates(ctx context.Context, db DBTX, id string, sinceID, untilID *string) error {
 	res, err := db.ExecContext(ctx,
 		`UPDATE relationships SET since_id = ?, until_id = ? WHERE id = ?`,
 		nullString(sinceID), nullString(untilID), id,
