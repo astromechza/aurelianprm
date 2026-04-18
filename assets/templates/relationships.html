@@ -89,9 +89,11 @@
   {{range .}}
   <li>
     <button type="button" class="outline"
+            data-person-id="{{.ID}}"
+            data-person-name="{{.Name}}"
             hx-on:click="
-              document.getElementById('rel-to-id').value = '{{.ID}}';
-              document.getElementById('person-search-selected').textContent = '{{.Name}}';
+              document.getElementById('rel-to-id').value = this.dataset.personId;
+              document.getElementById('person-search-selected').textContent = this.dataset.personName;
               document.getElementById('person-picker-results').innerHTML = '';
               document.getElementById('person-search-input').value = '';
             ">{{.Name}}</button>
