@@ -290,6 +290,16 @@ func TestPersonSearch_ReturnsResults(t *testing.T) {
 	assert.NotContains(t, body, "Bob Jones")
 }
 
+func TestPersonSearch_ExcludesCurrentPerson(t *testing.T) {
+	srv := newWebTestServer(t)
+	aliceID := createPersonForTest(t, srv, "Alice")
+	createPersonForTest(t, srv, "Bob")
+
+	rec := doHTMX(t, srv, http.MethodGet, "/people/search?_search=alice&exclude="+aliceID, nil)
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.NotContains(t, rec.Body.String(), "Alice")
+}
+
 func TestPersonSearch_RequiresHTMX(t *testing.T) {
 	srv := newWebTestServer(t)
 	rec := doWeb(t, srv, http.MethodGet, "/people/search?_search=alice", nil)

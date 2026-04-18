@@ -136,7 +136,7 @@
     <form hx-post="/people/{{.Person.ID}}/relationships"
           hx-target="#relationships-list"
           hx-swap="beforeend"
-          hx-on::after-request="this.reset(); document.getElementById('rel-to-id').value=''; document.getElementById('person-search-selected').textContent=''; document.getElementById('person-picker-results').innerHTML='';">
+          hx-on:htmx:after-request="if (event.detail.elt === this) { this.reset(); document.getElementById('rel-to-id').value=''; document.getElementById('person-search-selected').textContent=''; document.getElementById('person-picker-results').innerHTML=''; }">
       <div class="grid">
         <label>Label *
           <input name="label" placeholder="e.g. friend, employer" required>
@@ -155,7 +155,6 @@
                     document.getElementById('rel-create-mode').style.display = v==='person' ? '' : 'none';
                   ">
             <option value="person">Person</option>
-            <option value="address">Address</option>
             <option value="pet">Pet</option>
             <option value="work">Work</option>
           </select>
@@ -164,10 +163,9 @@
           <label>Search person
             <input id="person-search-input"
                    type="search" placeholder="Type a name…"
-                   hx-get="/people/search"
+                   hx-get="/people/search?exclude={{.Person.ID}}"
                    hx-trigger="input changed delay:300ms"
                    hx-target="#person-picker-results"
-                   hx-include="[name='_search']"
                    name="_search">
           </label>
           <div id="person-picker-results"></div>

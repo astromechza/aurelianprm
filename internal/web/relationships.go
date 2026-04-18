@@ -242,16 +242,28 @@ func (s *Server) handleRelationshipDelete(w http.ResponseWriter, r *http.Request
 
 // handlePersonSearch returns a person_picker_results.html fragment for the
 // relationship add-form person picker. Requires an HX-Request header.
+// The optional "exclude" query param omits a person by ID (typically the
+// current subject, so a person cannot link themselves).
 func (s *Server) handlePersonSearch(w http.ResponseWriter, r *http.Request) {
 	if r.Header.Get("HX-Request") == "" {
 		http.Error(w, "HTMX request required", http.StatusBadRequest)
 		return
 	}
 	query := r.URL.Query().Get("_search")
+	excludeID := r.URL.Query().Get("exclude")
 	people, err := store.ListPeople(r.Context(), s.db, query)
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
+	}
+	if excludeID != "" {
+		filtered := people[:0]
+		for _, p := range people {
+			if p.ID != excludeID {
+				filtered = append(filtered, p)
+			}
+		}
+		people = filtered
 	}
 	s.templates.Render(w, r, "person_picker_results.html", people)
 }
