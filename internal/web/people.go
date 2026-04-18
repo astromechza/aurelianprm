@@ -52,10 +52,27 @@ type personDetailData struct {
 	PastAddresses    []addressCardData // relationships where until_id IS NOT NULL
 }
 
-// relationshipRow pairs a Relationship with its resolved target display name.
+// relationshipRow pairs a PersonRelationshipRow with its resolved target name
+// and pre-formatted since/until display strings.
 type relationshipRow struct {
-	Relationship model.Relationship
+	Row          store.PersonRelationshipRow
+	PersonID     string
 	ToName       string
+	SinceDisplay string // e.g. "15 June 2018", empty if not set
+	UntilDisplay string // e.g. "31 December 2023", empty if not set
+}
+
+// relationshipEditData is passed to relationship_edit_form.html.
+type relationshipEditData struct {
+	PersonID   string
+	Row        store.PersonRelationshipRow
+	SinceYear  string
+	SinceMonth string
+	SinceDay   string
+	UntilYear  string
+	UntilMonth string
+	UntilDay   string
+	Error      string
 }
 
 // personFormData is passed to people_form.html for create and edit.
@@ -136,19 +153,16 @@ func (s *Server) buildPersonDetailData(ctx context.Context, p model.Person) (per
 	}
 	data.Interactions = interactions
 
-	rels, err := store.ListRelationships(ctx, s.db, p.ID)
+	rels, err := store.ListPersonRelationships(ctx, s.db, p.ID)
 	if err != nil {
 		return personDetailData{}, fmt.Errorf("loading relationships: %w", err)
 	}
 	for _, rel := range rels {
-		name, nameErr := s.resolveEntityName(ctx, rel.ToType, rel.ToID)
+		name, nameErr := s.resolveEntityName(ctx, rel.Relationship.ToType, rel.Relationship.ToID)
 		if nameErr != nil {
-			name = rel.ToID
+			name = rel.Relationship.ToID
 		}
-		data.Relationships = append(data.Relationships, relationshipRow{
-			Relationship: rel,
-			ToName:       name,
-		})
+		data.Relationships = append(data.Relationships, buildRelationshipRow(p.ID, rel, name))
 	}
 	addrs, err := store.ListPersonAddresses(ctx, s.db, p.ID)
 	if err != nil {
@@ -395,41 +409,7 @@ func (s *Server) handleContactMethodDelete(w http.ResponseWriter, r *http.Reques
 	w.WriteHeader(http.StatusOK)
 }
 
-// handleRelationshipCreate adds a relationship. Called by HTMX; returns a
-// single table row to be appended to the relationships list.
-func (s *Server) handleRelationshipCreate(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("id")
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "bad request", http.StatusBadRequest)
-		return
-	}
-	rel, err := store.CreateRelationship(r.Context(), s.db, model.Relationship{
-		PersonID: id,
-		ToType:   model.RelationshipTarget(r.FormValue("to_type")),
-		ToID:     r.FormValue("to_id"),
-		Label:    r.FormValue("label"),
-	})
-	if err != nil {
-		http.Error(w, "internal error", http.StatusInternalServerError)
-		return
-	}
-	toName, _ := s.resolveEntityName(r.Context(), rel.ToType, rel.ToID)
-	s.templates.Render(w, r, "relationship_row.html", relationshipRow{
-		Relationship: rel,
-		ToName:       toName,
-	})
-}
-
-// handleRelationshipDelete removes a relationship. Called by HTMX; returns
-// empty 200 so HTMX removes the row.
-func (s *Server) handleRelationshipDelete(w http.ResponseWriter, r *http.Request) {
-	relID := r.PathValue("id")
-	if err := store.DeleteRelationship(r.Context(), s.db, relID); err != nil && !errors.Is(err, sql.ErrNoRows) {
-		http.Error(w, "internal error", http.StatusInternalServerError)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
-}
+// handleRelationshipCreate and handleRelationshipDelete are in relationships.go.
 
 // nullableFormValue returns a pointer to the trimmed form value if non-empty,
 // otherwise nil.
@@ -492,6 +472,63 @@ func formatMonthYear(year, month *int) string {
 		return ""
 	}
 	return formatBlurryDate(model.BlurryDate{Year: year, Month: month})
+}
+
+// buildRelationshipRow assembles display data for the relationship_row.html template.
+func buildRelationshipRow(personID string, row store.PersonRelationshipRow, toName string) relationshipRow {
+	return relationshipRow{
+		Row:          row,
+		PersonID:     personID,
+		ToName:       toName,
+		SinceDisplay: formatBlurryDate(model.BlurryDate{Year: row.SinceYear, Month: row.SinceMonth, Day: row.SinceDay}),
+		UntilDisplay: formatBlurryDate(model.BlurryDate{Year: row.UntilYear, Month: row.UntilMonth, Day: row.UntilDay}),
+	}
+}
+
+// buildRelationshipEditData assembles data for the relationship_edit_form.html template.
+func buildRelationshipEditData(personID string, row store.PersonRelationshipRow, errMsg string) relationshipEditData {
+	d := relationshipEditData{PersonID: personID, Row: row, Error: errMsg}
+	if row.SinceYear != nil {
+		d.SinceYear = strconv.Itoa(*row.SinceYear)
+	}
+	if row.SinceMonth != nil {
+		d.SinceMonth = strconv.Itoa(*row.SinceMonth)
+	}
+	if row.SinceDay != nil {
+		d.SinceDay = strconv.Itoa(*row.SinceDay)
+	}
+	if row.UntilYear != nil {
+		d.UntilYear = strconv.Itoa(*row.UntilYear)
+	}
+	if row.UntilMonth != nil {
+		d.UntilMonth = strconv.Itoa(*row.UntilMonth)
+	}
+	if row.UntilDay != nil {
+		d.UntilDay = strconv.Itoa(*row.UntilDay)
+	}
+	return d
+}
+
+// parseBlurryDateForm reads year, month, and day from three form fields into a
+// BlurryDate. Returns nil if all three fields are blank.
+func parseBlurryDateForm(r *http.Request, yearKey, monthKey, dayKey string) *model.BlurryDate {
+	yearStr := r.FormValue(yearKey)
+	monthStr := r.FormValue(monthKey)
+	dayStr := r.FormValue(dayKey)
+	if yearStr == "" && monthStr == "" && dayStr == "" {
+		return nil
+	}
+	bd := &model.BlurryDate{}
+	if v, err := strconv.Atoi(yearStr); err == nil {
+		bd.Year = &v
+	}
+	if v, err := strconv.Atoi(monthStr); err == nil {
+		bd.Month = &v
+	}
+	if v, err := strconv.Atoi(dayStr); err == nil {
+		bd.Day = &v
+	}
+	return bd
 }
 
 // buildAddressCardData assembles display data for the address_card.html template.

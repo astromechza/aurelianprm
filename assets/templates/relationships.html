@@ -1,0 +1,103 @@
+{{define "relationship_row.html"}}
+<tr>
+  <td>{{.Row.Relationship.Label}}</td>
+  <td>{{.Row.Relationship.ToType}}</td>
+  <td>{{.ToName}}</td>
+  <td>
+    {{if or .SinceDisplay .UntilDisplay}}<small>
+      {{- if and .SinceDisplay .UntilDisplay}}{{.SinceDisplay}} &ndash; {{.UntilDisplay}}
+      {{- else if .SinceDisplay}}since {{.SinceDisplay}}
+      {{- else}}until {{.UntilDisplay}}
+      {{- end}}
+    </small>{{end}}
+  </td>
+  <td>{{if .Row.Relationship.Notes}}{{deref .Row.Relationship.Notes}}{{end}}</td>
+  <td>
+    <div class="flex-gap">
+      <button hx-get="/people/{{.PersonID}}/relationships/{{.Row.Relationship.ID}}/edit"
+              hx-target="closest tr"
+              hx-swap="outerHTML"
+              class="outline">Edit</button>
+      <button hx-delete="/people/{{.PersonID}}/relationships/{{.Row.Relationship.ID}}"
+              hx-target="closest tr"
+              hx-swap="outerHTML"
+              hx-confirm="Remove this relationship? This cannot be undone."
+              class="outline secondary">&#x2715;</button>
+    </div>
+  </td>
+</tr>
+{{end}}
+
+{{define "relationship_edit_form.html"}}
+<tr>
+  <td colspan="6">
+    {{if .Error}}<p><mark>{{.Error}}</mark></p>{{end}}
+    <form hx-post="/people/{{.PersonID}}/relationships/{{.Row.Relationship.ID}}/edit"
+          hx-target="closest tr"
+          hx-swap="outerHTML">
+      <div class="grid">
+        <label>Label *
+          <input name="label" value="{{.Row.Relationship.Label}}" required>
+        </label>
+        <label>Notes
+          <input name="notes" value="{{deref .Row.Relationship.Notes}}">
+        </label>
+      </div>
+      <fieldset>
+        <legend>Since (optional)</legend>
+        <div class="grid">
+          <label>Year
+            <input type="number" name="since_year" min="1900" max="2100" value="{{.SinceYear}}" placeholder="unknown">
+          </label>
+          <label>Month
+            <input type="number" name="since_month" min="1" max="12" value="{{.SinceMonth}}" placeholder="unknown">
+          </label>
+          <label>Day
+            <input type="number" name="since_day" min="1" max="31" value="{{.SinceDay}}" placeholder="unknown">
+          </label>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>Until (optional)</legend>
+        <div class="grid">
+          <label>Year
+            <input type="number" name="until_year" min="1900" max="2100" value="{{.UntilYear}}" placeholder="unknown">
+          </label>
+          <label>Month
+            <input type="number" name="until_month" min="1" max="12" value="{{.UntilMonth}}" placeholder="unknown">
+          </label>
+          <label>Day
+            <input type="number" name="until_day" min="1" max="31" value="{{.UntilDay}}" placeholder="unknown">
+          </label>
+        </div>
+      </fieldset>
+      <div class="flex-gap">
+        <button type="submit">Save</button>
+        <button type="button"
+                hx-get="/people/{{.PersonID}}/relationships/{{.Row.Relationship.ID}}"
+                hx-target="closest tr"
+                hx-swap="outerHTML"
+                class="outline secondary">Cancel</button>
+      </div>
+    </form>
+  </td>
+</tr>
+{{end}}
+
+{{define "person_picker_results.html"}}
+<ul class="person-picker-results">
+  {{range .}}
+  <li>
+    <button type="button" class="outline"
+            hx-on:click="
+              document.getElementById('rel-to-id').value = '{{.ID}}';
+              document.getElementById('person-search-selected').textContent = '{{.Name}}';
+              document.getElementById('person-picker-results').innerHTML = '';
+              document.getElementById('person-search-input').value = '';
+            ">{{.Name}}</button>
+  </li>
+  {{else}}
+  <li><small>No people found.</small></li>
+  {{end}}
+</ul>
+{{end}}

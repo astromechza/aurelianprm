@@ -126,27 +126,107 @@
 <article>
   <header><strong>Relationships</strong></header>
   <table>
-    <thead><tr><th>Label</th><th>Type</th><th>Name / ID</th><th></th></tr></thead>
+    <thead><tr><th>Label</th><th>Type</th><th>Name</th><th>Dates</th><th>Notes</th><th></th></tr></thead>
     <tbody id="relationships-list">
       {{range .Relationships}}{{template "relationship_row.html" .}}{{end}}
     </tbody>
   </table>
-  <form hx-post="/people/{{.Person.ID}}/relationships"
-        hx-target="#relationships-list"
-        hx-swap="beforeend"
-        hx-on::after-request="this.reset()">
-    <div class="grid">
-      <input name="label" placeholder="Label (e.g. friend)" required>
-      <select name="to_type" required>
-        <option value="person">Person</option>
-        <option value="address">Address</option>
-        <option value="pet">Pet</option>
-        <option value="work">Work</option>
-      </select>
-      <input name="to_id" placeholder="Entity ID" required>
+  <details>
+    <summary>Add relationship</summary>
+    <form hx-post="/people/{{.Person.ID}}/relationships"
+          hx-target="#relationships-list"
+          hx-swap="beforeend"
+          hx-on::after-request="this.reset(); document.getElementById('rel-to-id').value=''; document.getElementById('person-search-selected').textContent=''; document.getElementById('person-picker-results').innerHTML='';">
+      <div class="grid">
+        <label>Label *
+          <input name="label" placeholder="e.g. friend, employer" required>
+        </label>
+        <label>Notes
+          <input name="notes">
+        </label>
+      </div>
+      <div class="grid">
+        <label>Type *
+          <select name="to_type" required
+                  onchange="
+                    var v=this.value;
+                    document.getElementById('rel-person-picker').style.display = v==='person' ? '' : 'none';
+                    document.getElementById('rel-raw-id').style.display = v==='person' ? 'none' : '';
+                    document.getElementById('rel-create-mode').style.display = v==='person' ? '' : 'none';
+                  ">
+            <option value="person">Person</option>
+            <option value="address">Address</option>
+            <option value="pet">Pet</option>
+            <option value="work">Work</option>
+          </select>
+        </label>
+        <div id="rel-person-picker">
+          <label>Search person
+            <input id="person-search-input"
+                   type="search" placeholder="Type a name…"
+                   hx-get="/people/search"
+                   hx-trigger="input changed delay:300ms"
+                   hx-target="#person-picker-results"
+                   hx-include="[name='_search']"
+                   name="_search">
+          </label>
+          <div id="person-picker-results"></div>
+          <small>Selected: <span id="person-search-selected"><em>none</em></span></small>
+          <input type="hidden" id="rel-to-id" name="to_id">
+        </div>
+        <div id="rel-raw-id" style="display:none">
+          <label>Entity ID *
+            <input name="to_id_raw" placeholder="ID">
+          </label>
+        </div>
+      </div>
+      <div id="rel-create-mode">
+        <label>
+          <input type="checkbox" name="create_new_person" id="rel-create-new-checkbox"
+                 onchange="
+                   var checked = this.checked;
+                   document.getElementById('rel-person-picker').style.display = checked ? 'none' : '';
+                   document.getElementById('rel-new-person-fields').style.display = checked ? '' : 'none';
+                 ">
+          Create a new person instead
+        </label>
+        <div id="rel-new-person-fields" style="display:none">
+          <div class="grid">
+            <label>Name *
+              <input name="new_person_name" placeholder="Full name">
+            </label>
+            <label>Notes
+              <input name="new_person_notes">
+            </label>
+          </div>
+        </div>
+      </div>
+      <fieldset>
+        <legend>Dates (optional)</legend>
+        <div class="grid">
+          <label>Since year
+            <input type="number" name="since_year" min="1900" max="2100" placeholder="unknown">
+          </label>
+          <label>Since month
+            <input type="number" name="since_month" min="1" max="12" placeholder="unknown">
+          </label>
+          <label>Since day
+            <input type="number" name="since_day" min="1" max="31" placeholder="unknown">
+          </label>
+          <label>Until year
+            <input type="number" name="until_year" min="1900" max="2100" placeholder="unknown">
+          </label>
+          <label>Until month
+            <input type="number" name="until_month" min="1" max="12" placeholder="unknown">
+          </label>
+          <label>Until day
+            <input type="number" name="until_day" min="1" max="31" placeholder="unknown">
+          </label>
+        </div>
+      </fieldset>
       <button type="submit">Add</button>
-    </div>
-  </form>
+    </form>
+  </details>
 </article>
 {{end}}
 
@@ -173,17 +253,3 @@
 </tr>
 {{end}}
 
-{{define "relationship_row.html"}}
-<tr>
-  <td>{{.Relationship.Label}}</td>
-  <td>{{.Relationship.ToType}}</td>
-  <td>{{.ToName}}</td>
-  <td>
-    <button hx-delete="/relationships/{{.Relationship.ID}}"
-            hx-target="closest tr"
-            hx-swap="outerHTML"
-            hx-confirm="Remove this relationship?"
-            class="outline secondary">&#x2715;</button>
-  </td>
-</tr>
-{{end}}

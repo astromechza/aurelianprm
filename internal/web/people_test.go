@@ -244,15 +244,11 @@ func TestRelationship_CreateAndDelete_HTMX(t *testing.T) {
 	assert.Contains(t, body, "friend")
 	assert.Contains(t, body, "Ivan")
 
-	// Extract relationship ID from hx-delete="/relationships/{id}".
-	prefix := `/relationships/`
-	idx := strings.Index(body, prefix)
-	require.True(t, idx >= 0, "hx-delete attribute not found")
-	rest := body[idx+len(prefix):]
-	relID := rest[:strings.IndexAny(rest, `"' `)]
+	// Extract relationship ID from hx-get="/people/{id}/relationships/{rel_id}/edit".
+	relID := extractRelID(t, body, p1ID)
 
 	// Delete via HTMX.
-	rec4 := doHTMX(t, srv, http.MethodDelete, "/relationships/"+relID, nil)
+	rec4 := doHTMX(t, srv, http.MethodDelete, "/people/"+p1ID+"/relationships/"+relID, nil)
 	assert.Equal(t, http.StatusOK, rec4.Code)
 }
 

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Relationship improvements**: since/until dates (year+month+day precision), notes field, and inline edit/delete on relationship rows (card-swap pattern matching addresses). Person-type relationships now have a live-search picker (`GET /people/search?_search=…`) instead of a raw UUID field. An optional "Create new person" checkbox lets you create a stub person and link them in one step.
+- `internal/store`: `PersonRelationshipRow`, `ListPersonRelationships`, `GetPersonRelationshipRow` — single JOIN query across relationships/blurry_dates
+- `internal/store`: `UpdateRelationship` — updates label, notes, since_id, until_id atomically
+- `internal/store`: `DBTX` interface (satisfied by `*sql.DB` and `*sql.Tx`) and `store.WithTx` helper; all store function signatures changed from `*sql.DB` to `DBTX`
+- Multi-write handlers (`handlePersonCreate/Update/Delete`, `handleAddressCreate/Update/Delete`, `handleRelationshipCreate/Update/Delete`) now run inside `store.WithTx` for atomicity
+
 ### Changed
 
 - Country field on address forms is now validated against ISO 3166-1 alpha-2 codes (via `golang.org/x/text` CLDR data). Lowercase input is normalised to uppercase. Invalid codes return HTTP 422. The form includes a `<datalist>` with all ~280 valid codes sorted by country name.

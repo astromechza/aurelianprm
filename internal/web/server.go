@@ -69,8 +69,12 @@ func New(cfg Config, database *sql.DB, rootFS fs.FS) (*Server, error) {
 	protected.HandleFunc("POST /people/{id}/interactions", s.handleInteractionCreate)
 	protected.HandleFunc("POST /people/{id}/contact-methods", s.handleContactMethodCreate)
 	protected.HandleFunc("DELETE /people/{id}/contact-methods/{method_id}", s.handleContactMethodDelete)
+	protected.HandleFunc("GET /people/search", s.handlePersonSearch)
 	protected.HandleFunc("POST /people/{id}/relationships", s.handleRelationshipCreate)
-	protected.HandleFunc("DELETE /relationships/{id}", s.handleRelationshipDelete)
+	protected.HandleFunc("GET /people/{id}/relationships/{rel_id}", s.handleRelationshipCard)
+	protected.HandleFunc("GET /people/{id}/relationships/{rel_id}/edit", s.handleRelationshipEditForm)
+	protected.HandleFunc("POST /people/{id}/relationships/{rel_id}/edit", s.handleRelationshipUpdate)
+	protected.HandleFunc("DELETE /people/{id}/relationships/{rel_id}", s.handleRelationshipDelete)
 
 	// Address routes
 	protected.HandleFunc("GET /people/{id}/addresses/{addr_id}", s.handleAddressCard)
