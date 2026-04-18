@@ -2,7 +2,7 @@
 <tr>
   <td>{{.Row.Relationship.Label}}</td>
   <td>{{.Row.Relationship.ToType}}</td>
-  <td>{{.ToName}}</td>
+  <td>{{if eq .Row.Relationship.ToType "person"}}<a href="/people/{{.Row.Relationship.ToID}}">{{.ToName}}</a>{{else}}{{.ToName}}{{end}}</td>
   <td>
     {{if or .SinceDisplay .UntilDisplay}}<small>
       {{- if and .SinceDisplay .UntilDisplay}}{{.SinceDisplay}} &ndash; {{.UntilDisplay}}
