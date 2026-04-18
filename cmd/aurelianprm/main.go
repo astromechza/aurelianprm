@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"runtime/debug"
 	"syscall"
 	"time"
@@ -133,6 +134,11 @@ func runServe(args []string) error {
 	}
 	defer sqlDB.Close() //nolint:errcheck
 
+	dbPathAbs, err := filepath.Abs(cfg.DBPath)
+	if err != nil {
+		dbPathAbs = cfg.DBPath // fall back to whatever was configured
+	}
+
 	commit, buildTime := parseBuildInfo()
 	srv, err := web.New(web.Config{
 		Listen:       cfg.Listen,
@@ -143,6 +149,7 @@ func runServe(args []string) error {
 			Commit:    commit,
 			BuildTime: buildTime,
 			StartTime: startTime,
+			DBPath:    dbPathAbs,
 		},
 	}, sqlDB, assets.FS)
 	if err != nil {

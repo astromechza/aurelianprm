@@ -29,7 +29,7 @@
   </datalist>
   {{- end}}
   <footer class="container">
-    <small>AurelianPRM {{.BuildInfo.Version}} ({{.BuildInfo.Commit}}) &mdash; built {{.BuildInfo.BuildTime}} &mdash; started {{.BuildInfo.StartTime.Format "2006-01-02 15:04:05"}} UTC</small>
+    <small>AurelianPRM {{.BuildInfo.Version}} ({{.BuildInfo.Commit}}) &mdash; built {{.BuildInfo.BuildTime}} &mdash; started {{.BuildInfo.StartTime.Format "2006-01-02 15:04:05"}} UTC &mdash; db: {{.BuildInfo.DBPath}}</small>
   </footer>
 </body>
 </html>

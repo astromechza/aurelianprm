@@ -20,6 +20,7 @@ type BuildInfo struct {
 	Commit    string
 	BuildTime string
 	StartTime time.Time
+	DBPath    string // absolute path to the SQLite database file
 }
 
 // Server holds the HTTP server and its dependencies.
