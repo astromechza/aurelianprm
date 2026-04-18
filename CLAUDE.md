@@ -11,7 +11,8 @@ Spec: `docs/superpowers/specs/` — read this before making significant changes.
 
 ## Key Commands
 
-- Run server: `go run ./cmd/aurelianprm serve --config ./config.json`
+- Run server (dev, hot-reload): `air` (requires `go install github.com/air-verse/air@latest`; config in `.air.toml`)
+- Run server (one-shot): `go run ./cmd/aurelianprm serve --config ./config.dev.json`
 - Run tests:  `go test -race -cover ./...`
 - Lint:       `golangci-lint run`
 - Build:      `go build ./...`
