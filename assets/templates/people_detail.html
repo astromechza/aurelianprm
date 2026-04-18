@@ -136,7 +136,7 @@
     <form hx-post="/people/{{.Person.ID}}/relationships"
           hx-target="#relationships-list"
           hx-swap="beforeend"
-          hx-on:htmx:after-request="if (event.detail.elt === this) { this.reset(); document.getElementById('rel-to-id').value=''; document.getElementById('person-search-selected').textContent=''; document.getElementById('person-picker-results').innerHTML=''; }">
+          hx-on::after-request="if (event.detail.elt === this && event.detail.successful) { this.reset(); document.getElementById('rel-to-id').value=''; document.getElementById('person-search-selected').textContent=''; document.getElementById('person-picker-results').innerHTML=''; }">
       <div class="grid">
         <label>Label *
           <input name="label" placeholder="e.g. friend, employer" required>
