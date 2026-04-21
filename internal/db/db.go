@@ -1,4 +1,4 @@
-// Package db provides database connection and initialization utilities.
+// Package db manages SQLite database connections.
 package db
 
 import (
@@ -15,8 +15,7 @@ import (
 //go:embed migrations/*.sql
 var migrationsFS embed.FS
 
-// Open opens a SQLite database at path (use ":memory:" for tests), applies
-// required pragmas, and runs all pending goose migrations.
+// Open returns a ready-to-use SQLite database connection with migrations applied.
 func Open(path string) (*sql.DB, error) {
 	conn, err := sql.Open("sqlite", path)
 	if err != nil {
@@ -37,9 +36,6 @@ func Open(path string) (*sql.DB, error) {
 		}
 	}
 
-	goose.SetLogger(goose.NopLogger())
-
-	// The embed directive creates a FS with "migrations" at the root
 	fsys, err := fs.Sub(migrationsFS, "migrations")
 	if err != nil {
 		if closeErr := conn.Close(); closeErr != nil {
@@ -48,7 +44,7 @@ func Open(path string) (*sql.DB, error) {
 		return nil, fmt.Errorf("get migrations subdir: %w", err)
 	}
 
-	provider, err := goose.NewProvider(goose.DialectSQLite3, conn, fsys)
+	provider, err := goose.NewProvider(goose.DialectSQLite3, conn, fsys, goose.WithLogger(goose.NopLogger()))
 	if err != nil {
 		if closeErr := conn.Close(); closeErr != nil {
 			err = fmt.Errorf("%w; close: %v", err, closeErr)
