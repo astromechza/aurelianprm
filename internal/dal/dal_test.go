@@ -252,3 +252,322 @@ func TestSearchEntities_noDisplayName_notIndexed(t *testing.T) {
 }
 
 func ptr(s string) *string { return &s }
+
+func TestCreateRelationship_and_GetNeighbors(t *testing.T) {
+	d := newTestDAL(t)
+	ctx := context.Background()
+
+	var personID, emailID string
+	err := d.WithTx(ctx, func(q *dal.Queries) error {
+		p, err := q.CreateEntity(ctx, dal.CreateEntityParams{
+			Type: "Person",
+			Data: json.RawMessage(`{"name":"Frank"}`),
+		})
+		if err != nil {
+			return err
+		}
+		personID = p.ID
+		e, err := q.CreateEntity(ctx, dal.CreateEntityParams{
+			Type: "EmailAddress",
+			Data: json.RawMessage(`{"email":"frank@example.com"}`),
+		})
+		emailID = e.ID
+		return err
+	})
+	require.NoError(t, err)
+
+	err = d.WithTx(ctx, func(q *dal.Queries) error {
+		_, err := q.CreateRelationship(ctx, dal.CreateRelationshipParams{
+			EntityAID: personID,
+			EntityBID: emailID,
+			Type:      "hasEmail",
+			Note:      ptr("primary email"),
+		})
+		return err
+	})
+	require.NoError(t, err)
+
+	var neighbours []dal.NeighbourResult
+	err = d.WithTx(ctx, func(q *dal.Queries) error {
+		var err error
+		neighbours, err = q.GetNeighbours(ctx, personID)
+		return err
+	})
+	require.NoError(t, err)
+	require.Len(t, neighbours, 1)
+	require.Equal(t, emailID, neighbours[0].Entity.ID)
+	require.Equal(t, "hasEmail", neighbours[0].Relationship.Type)
+	require.Equal(t, "outbound", neighbours[0].Direction)
+}
+
+func TestCreateRelationship_validationFails(t *testing.T) {
+	d := newTestDAL(t)
+	ctx := context.Background()
+
+	var idA, idB string
+	err := d.WithTx(ctx, func(q *dal.Queries) error {
+		a, err := q.CreateEntity(ctx, dal.CreateEntityParams{Type: "Person", Data: json.RawMessage(`{"name":"Greta"}`)})
+		if err != nil {
+			return err
+		}
+		idA = a.ID
+		b, err := q.CreateEntity(ctx, dal.CreateEntityParams{Type: "Person", Data: json.RawMessage(`{"name":"Hank"}`)})
+		idB = b.ID
+		return err
+	})
+	require.NoError(t, err)
+
+	// hasEmail requires object to be EmailAddress, not Person — must fail.
+	err = d.WithTx(ctx, func(q *dal.Queries) error {
+		_, err := q.CreateRelationship(ctx, dal.CreateRelationshipParams{
+			EntityAID: idA,
+			EntityBID: idB,
+			Type:      "hasEmail",
+		})
+		return err
+	})
+	require.Error(t, err)
+}
+
+func TestCreateRelationship_partialDates(t *testing.T) {
+	d := newTestDAL(t)
+	ctx := context.Background()
+
+	for _, tc := range []struct{ from, to string }{
+		{"2019", "2023"},
+		{"2019-06", "2023-01"},
+		{"2019-06-15", "2023-01-20"},
+	} {
+		tc := tc
+		t.Run(tc.from+"_"+tc.to, func(t *testing.T) {
+			var idA, idB string
+			err := d.WithTx(ctx, func(q *dal.Queries) error {
+				a, err := q.CreateEntity(ctx, dal.CreateEntityParams{Type: "Person", Data: json.RawMessage(`{"name":"Pat"}`)})
+				if err != nil {
+					return err
+				}
+				idA = a.ID
+				b, err := q.CreateEntity(ctx, dal.CreateEntityParams{Type: "Person", Data: json.RawMessage(`{"name":"Quinn"}`)})
+				idB = b.ID
+				return err
+			})
+			require.NoError(t, err)
+
+			err = d.WithTx(ctx, func(q *dal.Queries) error {
+				_, err := q.CreateRelationship(ctx, dal.CreateRelationshipParams{
+					EntityAID: idA, EntityBID: idB, Type: "knows",
+					DateFrom: &tc.from, DateTo: &tc.to,
+				})
+				return err
+			})
+			require.NoError(t, err, "expected valid for from=%s to=%s", tc.from, tc.to)
+		})
+	}
+
+	// Invalid formats must be rejected.
+	var idA, idB string
+	err := d.WithTx(ctx, func(q *dal.Queries) error {
+		a, err := q.CreateEntity(ctx, dal.CreateEntityParams{Type: "Person", Data: json.RawMessage(`{"name":"Pat2"}`)})
+		if err != nil {
+			return err
+		}
+		idA = a.ID
+		b, err := q.CreateEntity(ctx, dal.CreateEntityParams{Type: "Person", Data: json.RawMessage(`{"name":"Quinn2"}`)})
+		idB = b.ID
+		return err
+	})
+	require.NoError(t, err)
+
+	for _, bad := range []string{"01-2019", "2019/06/15", "not-a-date", "20190615"} {
+		bad := bad
+		err = d.WithTx(ctx, func(q *dal.Queries) error {
+			_, err := q.CreateRelationship(ctx, dal.CreateRelationshipParams{
+				EntityAID: idA, EntityBID: idB, Type: "knows",
+				DateFrom: &bad,
+			})
+			return err
+		})
+		require.Error(t, err, "expected error for date_from=%q", bad)
+	}
+}
+
+func TestCreateRelationship_symmetric_queryBothDirections(t *testing.T) {
+	d := newTestDAL(t)
+	ctx := context.Background()
+
+	var idA, idB string
+	err := d.WithTx(ctx, func(q *dal.Queries) error {
+		a, err := q.CreateEntity(ctx, dal.CreateEntityParams{Type: "Person", Data: json.RawMessage(`{"name":"Iris"}`)})
+		if err != nil {
+			return err
+		}
+		idA = a.ID
+		b, err := q.CreateEntity(ctx, dal.CreateEntityParams{Type: "Person", Data: json.RawMessage(`{"name":"Jack"}`)})
+		idB = b.ID
+		return err
+	})
+	require.NoError(t, err)
+
+	err = d.WithTx(ctx, func(q *dal.Queries) error {
+		_, err := q.CreateRelationship(ctx, dal.CreateRelationshipParams{
+			EntityAID: idA,
+			EntityBID: idB,
+			Type:      "knows",
+		})
+		return err
+	})
+	require.NoError(t, err)
+
+	// GetNeighbours from idB should surface the relationship as "inbound".
+	var neighbours []dal.NeighbourResult
+	err = d.WithTx(ctx, func(q *dal.Queries) error {
+		var err error
+		neighbours, err = q.GetNeighbours(ctx, idB)
+		return err
+	})
+	require.NoError(t, err)
+	require.Len(t, neighbours, 1)
+	require.Equal(t, idA, neighbours[0].Entity.ID)
+	require.Equal(t, "inbound", neighbours[0].Direction)
+}
+
+func TestDeleteRelationship_cascadesWithEntity(t *testing.T) {
+	d := newTestDAL(t)
+	ctx := context.Background()
+
+	var personID string
+	err := d.WithTx(ctx, func(q *dal.Queries) error {
+		p, err := q.CreateEntity(ctx, dal.CreateEntityParams{Type: "Person", Data: json.RawMessage(`{"name":"Kate"}`)})
+		if err != nil {
+			return err
+		}
+		personID = p.ID
+		e, err := q.CreateEntity(ctx, dal.CreateEntityParams{Type: "EmailAddress", Data: json.RawMessage(`{"email":"kate@example.com"}`)})
+		if err != nil {
+			return err
+		}
+		_, err = q.CreateRelationship(ctx, dal.CreateRelationshipParams{EntityAID: personID, EntityBID: e.ID, Type: "hasEmail"})
+		return err
+	})
+	require.NoError(t, err)
+
+	// Deleting the person should cascade to the relationship.
+	err = d.WithTx(ctx, func(q *dal.Queries) error {
+		return q.DeleteEntity(ctx, personID)
+	})
+	require.NoError(t, err)
+
+	var count int
+	require.NoError(t, d.DB().QueryRowContext(ctx, `SELECT COUNT(*) FROM relationships`).Scan(&count))
+	require.Equal(t, 0, count)
+}
+
+func TestUpdateRelationship(t *testing.T) {
+	d := newTestDAL(t)
+	ctx := context.Background()
+
+	var relID string
+	err := d.WithTx(ctx, func(q *dal.Queries) error {
+		p, err := q.CreateEntity(ctx, dal.CreateEntityParams{Type: "Person", Data: json.RawMessage(`{"name":"Leo"}`)})
+		if err != nil {
+			return err
+		}
+		e, err := q.CreateEntity(ctx, dal.CreateEntityParams{Type: "EmailAddress", Data: json.RawMessage(`{"email":"leo@example.com"}`)})
+		if err != nil {
+			return err
+		}
+		r, err := q.CreateRelationship(ctx, dal.CreateRelationshipParams{
+			EntityAID: p.ID, EntityBID: e.ID, Type: "hasEmail",
+		})
+		relID = r.ID
+		return err
+	})
+	require.NoError(t, err)
+
+	dateFrom := "2020-03"
+	err = d.WithTx(ctx, func(q *dal.Queries) error {
+		return q.UpdateRelationship(ctx, dal.UpdateRelationshipParams{
+			ID:       relID,
+			DateFrom: &dateFrom,
+			Note:     ptr("primary work email"),
+		})
+	})
+	require.NoError(t, err)
+
+	var note, df string
+	require.NoError(t, d.DB().QueryRowContext(ctx,
+		`SELECT note, date_from FROM relationships WHERE id=?`, relID,
+	).Scan(&note, &df))
+	require.Equal(t, "primary work email", note)
+	require.Equal(t, "2020-03", df)
+}
+
+func TestUpdateRelationship_invalidDate(t *testing.T) {
+	d := newTestDAL(t)
+	ctx := context.Background()
+
+	var relID string
+	err := d.WithTx(ctx, func(q *dal.Queries) error {
+		p, err := q.CreateEntity(ctx, dal.CreateEntityParams{Type: "Person", Data: json.RawMessage(`{"name":"Mia"}`)})
+		if err != nil {
+			return err
+		}
+		e, err := q.CreateEntity(ctx, dal.CreateEntityParams{Type: "EmailAddress", Data: json.RawMessage(`{"email":"mia@example.com"}`)})
+		if err != nil {
+			return err
+		}
+		r, err := q.CreateRelationship(ctx, dal.CreateRelationshipParams{
+			EntityAID: p.ID, EntityBID: e.ID, Type: "hasEmail",
+		})
+		relID = r.ID
+		return err
+	})
+	require.NoError(t, err)
+
+	bad := "not-a-date"
+	err = d.WithTx(ctx, func(q *dal.Queries) error {
+		return q.UpdateRelationship(ctx, dal.UpdateRelationshipParams{
+			ID:       relID,
+			DateFrom: &bad,
+		})
+	})
+	require.Error(t, err)
+}
+
+func TestGetNeighboursByRelType(t *testing.T) {
+	d := newTestDAL(t)
+	ctx := context.Background()
+
+	var personID string
+	err := d.WithTx(ctx, func(q *dal.Queries) error {
+		p, err := q.CreateEntity(ctx, dal.CreateEntityParams{Type: "Person", Data: json.RawMessage(`{"name":"Nina"}`)})
+		if err != nil {
+			return err
+		}
+		personID = p.ID
+		email, err := q.CreateEntity(ctx, dal.CreateEntityParams{Type: "EmailAddress", Data: json.RawMessage(`{"email":"nina@example.com"}`)})
+		if err != nil {
+			return err
+		}
+		phone, err := q.CreateEntity(ctx, dal.CreateEntityParams{Type: "PhoneNumber", Data: json.RawMessage(`{"telephone":"+1 555 000 1234"}`)})
+		if err != nil {
+			return err
+		}
+		if _, err := q.CreateRelationship(ctx, dal.CreateRelationshipParams{EntityAID: p.ID, EntityBID: email.ID, Type: "hasEmail"}); err != nil {
+			return err
+		}
+		_, err = q.CreateRelationship(ctx, dal.CreateRelationshipParams{EntityAID: p.ID, EntityBID: phone.ID, Type: "hasPhone"})
+		return err
+	})
+	require.NoError(t, err)
+
+	var emails []dal.NeighbourResult
+	err = d.WithTx(ctx, func(q *dal.Queries) error {
+		var err error
+		emails, err = q.GetNeighboursByRelType(ctx, personID, "hasEmail")
+		return err
+	})
+	require.NoError(t, err)
+	require.Len(t, emails, 1)
+	require.Equal(t, "EmailAddress", emails[0].Entity.Type)
+}
