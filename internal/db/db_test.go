@@ -62,3 +62,19 @@ func TestOpen_relationshipsTable(t *testing.T) {
 		VALUES ('01JTEST00000000000000000005', '01JTEST00000000000000000002', '01JTEST00000000000000000002', 'knows')`)
 	require.Error(t, err)
 }
+
+func TestOpen_entitiesFTSTable(t *testing.T) {
+	conn, err := db.Open(":memory:")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = conn.Close() })
+
+	_, err = conn.Exec(`INSERT INTO entities (id, type, display_name, data)
+		VALUES ('01JTEST00000000000000000010', 'Person', 'Alice Smith', '{"name":"Alice Smith"}')`)
+	require.NoError(t, err)
+
+	var entityID string
+	require.NoError(t, conn.QueryRow(
+		`SELECT entity_id FROM entities_fts WHERE display_name MATCH 'alice'`,
+	).Scan(&entityID))
+	require.Equal(t, "01JTEST00000000000000000010", entityID)
+}
