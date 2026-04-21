@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "PhoneNumber",
+  "title": "PhoneNumber",
+  "description": "A telephone contact point. Inspired by schema.org/ContactPoint.",
+  "type": "object",
+  "properties": {
+    "telephone": { "type": "string", "minLength": 1, "pattern": "^\\+?[\\d\\s\\-().]+$" },
+    "label":     { "type": "string", "description": "e.g. mobile, work, home, other" }
+  },
+  "required": ["telephone"],
+  "additionalProperties": false
+}

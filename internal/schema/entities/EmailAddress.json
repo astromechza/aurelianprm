@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "EmailAddress",
+  "title": "EmailAddress",
+  "description": "An email contact point. Inspired by schema.org/ContactPoint.",
+  "type": "object",
+  "properties": {
+    "email": { "type": "string", "format": "email" },
+    "label": { "type": "string", "description": "e.g. work, personal, other" }
+  },
+  "required": ["email"],
+  "additionalProperties": false
+}

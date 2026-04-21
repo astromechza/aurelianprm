@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "SocialNetwork",
+  "title": "SocialNetwork",
+  "description": "A social network profile.",
+  "type": "object",
+  "properties": {
+    "platform": { "type": "string", "description": "e.g. LinkedIn, GitHub, Bluesky, Mastodon" },
+    "handle":   { "type": "string", "description": "Username or handle on the platform" },
+    "url":      { "type": "string", "format": "uri" }
+  },
+  "required": ["platform"],
+  "additionalProperties": false
+}

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "Career",
+  "title": "Career",
+  "description": "A role or position at an organization.",
+  "type": "object",
+  "properties": {
+    "role":         { "type": "string", "minLength": 1, "description": "Job title or position" },
+    "organization": { "type": "string", "minLength": 1, "description": "Name of the organization" },
+    "label":        { "type": "string", "description": "e.g. current, former, contract" }
+  },
+  "required": ["role", "organization"],
+  "additionalProperties": false
+}

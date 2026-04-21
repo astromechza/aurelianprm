@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "Pet",
+  "title": "Pet",
+  "description": "A domesticated animal. Inspired by schema.org/Animal.",
+  "type": "object",
+  "properties": {
+    "name":      { "type": "string", "minLength": 1 },
+    "species":   { "type": "string", "minLength": 1, "description": "e.g. dog, cat, rabbit" },
+    "birthDate": { "type": "string", "format": "date" },
+    "label":     { "type": "string" }
+  },
+  "required": ["name"],
+  "additionalProperties": false
+}
