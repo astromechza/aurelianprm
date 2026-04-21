@@ -43,3 +43,22 @@ func TestOpen_entitiesTable(t *testing.T) {
 	require.Equal(t, "Person", typ)
 	require.Equal(t, "Alice", name)
 }
+
+func TestOpen_relationshipsTable(t *testing.T) {
+	conn, err := db.Open(":memory:")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = conn.Close() })
+
+	_, err = conn.Exec(`INSERT INTO entities (id, type, data) VALUES
+		('01JTEST00000000000000000002', 'Person', '{}'),
+		('01JTEST00000000000000000003', 'EmailAddress', '{}')`)
+	require.NoError(t, err)
+
+	_, err = conn.Exec(`INSERT INTO relationships (id, entity_a_id, entity_b_id, type)
+		VALUES ('01JTEST00000000000000000004', '01JTEST00000000000000000002', '01JTEST00000000000000000003', 'hasEmail')`)
+	require.NoError(t, err)
+
+	_, err = conn.Exec(`INSERT INTO relationships (id, entity_a_id, entity_b_id, type)
+		VALUES ('01JTEST00000000000000000005', '01JTEST00000000000000000002', '01JTEST00000000000000000002', 'knows')`)
+	require.Error(t, err)
+}
