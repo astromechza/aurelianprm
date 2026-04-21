@@ -1,0 +1,36 @@
+version: "2"
+
+linters:
+  default: none
+  enable:
+    - errcheck
+    - gocritic
+    - govet
+    - ineffassign
+    - misspell
+    - noctx
+    - prealloc
+    - revive
+    - staticcheck
+    - unconvert
+    - unparam
+    - unused
+
+linters-settings:
+  revive:
+    rules:
+      - name: exported
+      - name: error-return
+      - name: error-strings
+      - name: var-naming
+      - name: indent-error-flow
+      - name: if-return
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - style
+      - performance
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
