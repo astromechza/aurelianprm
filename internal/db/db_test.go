@@ -25,3 +25,21 @@ func TestOpen_pragmas(t *testing.T) {
 	require.NoError(t, conn.QueryRow("PRAGMA foreign_keys").Scan(&fkEnabled))
 	require.Equal(t, 1, fkEnabled)
 }
+
+func TestOpen_entitiesTable(t *testing.T) {
+	conn, err := db.Open(":memory:")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = conn.Close() })
+
+	_, err = conn.Exec(
+		`INSERT INTO entities (id, type, display_name, data) VALUES ('01JTEST00000000000000000001', 'Person', 'Alice', '{"name":"Alice"}')`,
+	)
+	require.NoError(t, err)
+
+	var typ, name string
+	require.NoError(t, conn.QueryRow(
+		`SELECT type, display_name FROM entities WHERE id='01JTEST00000000000000000001'`,
+	).Scan(&typ, &name))
+	require.Equal(t, "Person", typ)
+	require.Equal(t, "Alice", name)
+}
