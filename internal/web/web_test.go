@@ -122,3 +122,15 @@ func TestPersonsSearch_ReturnsPartial(t *testing.T) {
 	assert.NotContains(t, w.Body.String(), "<!DOCTYPE")
 	assert.Contains(t, w.Body.String(), "Bob Builder")
 }
+
+func TestPersonsCreate_SearchableAfterCreate(t *testing.T) {
+	s := newTestServer(t)
+	// Create a person via the handler
+	w := doPost(t, s, "/persons", "name=Zara+Searchable")
+	require.Equal(t, http.StatusSeeOther, w.Code)
+
+	// Now search via HTMX partial
+	w2 := doGetHX(t, s, "/persons?q=Zara")
+	assert.Equal(t, http.StatusOK, w2.Code)
+	assert.Contains(t, w2.Body.String(), "Zara Searchable")
+}

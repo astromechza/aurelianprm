@@ -95,8 +95,9 @@ func (s *Server) handlePersonsCreate(w http.ResponseWriter, r *http.Request) {
 	var id string
 	err = s.dal.WithTx(ctx, func(q *dal.Queries) error {
 		e, err := q.CreateEntity(ctx, dal.CreateEntityParams{
-			Type: "Person",
-			Data: raw,
+			Type:        "Person",
+			DisplayName: &name,
+			Data:        raw,
 		})
 		if err != nil {
 			return err
@@ -219,7 +220,7 @@ func (s *Server) handlePersonsUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = s.dal.WithTx(ctx, func(q *dal.Queries) error {
-		return q.UpdateEntity(ctx, dal.UpdateEntityParams{ID: id, Data: raw})
+		return q.UpdateEntity(ctx, dal.UpdateEntityParams{ID: id, DisplayName: &name, Data: raw})
 	})
 	if err != nil {
 		s.serverError(w, r, err)
@@ -236,6 +237,10 @@ func (s *Server) handlePersonsDelete(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		s.serverError(w, r, err)
+		return
+	}
+	if isHTMX(r) {
+		w.WriteHeader(http.StatusOK)
 		return
 	}
 	http.Redirect(w, r, "/persons", http.StatusSeeOther)
