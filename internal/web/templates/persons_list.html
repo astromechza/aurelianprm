@@ -1,1 +1,31 @@
-{{define "persons-list"}}{{template "layout-head" .}}persons-list{{template "layout-foot" .}}{{end}}
+{{define "persons-list"}}
+{{template "layout-head" .}}
+<article>
+  <header>
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <h2 style="margin:0;">People</h2>
+      <a href="/persons/new" role="button">+ New Person</a>
+    </div>
+  </header>
+  <input
+    type="search"
+    name="q"
+    placeholder="Search by name…"
+    value="{{.Query}}"
+    hx-get="/persons"
+    hx-trigger="keyup changed delay:300ms"
+    hx-target="#person-results"
+    hx-push-url="true"
+    aria-label="Search people"
+  >
+  <table>
+    <thead>
+      <tr><th>Name</th><th>Nickname</th><th>Birth Year</th><th></th></tr>
+    </thead>
+    <tbody id="person-results">
+      {{template "persons-rows" .}}
+    </tbody>
+  </table>
+</article>
+{{template "layout-foot" .}}
+{{end}}

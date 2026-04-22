@@ -60,14 +60,16 @@ func doMethod(t *testing.T, s *web.Server, method, path, body string) *httptest.
 }
 
 // createTestPerson inserts a Person entity directly via the DAL and returns its ID.
+// DisplayName is set to name so the entity is indexed for FTS search.
 func createTestPerson(t *testing.T, sqlDB *sql.DB, name string) string {
 	t.Helper()
 	d := dal.New(sqlDB)
 	var id string
 	err := d.WithTx(t.Context(), func(q *dal.Queries) error {
 		e, err := q.CreateEntity(t.Context(), dal.CreateEntityParams{
-			Type: "Person",
-			Data: []byte(`{"name":"` + name + `"}`),
+			Type:        "Person",
+			DisplayName: &name,
+			Data:        []byte(`{"name":"` + name + `"}`),
 		})
 		if err != nil {
 			return err
@@ -84,4 +86,39 @@ func TestRootRedirects(t *testing.T) {
 	w := doGet(t, s, "/")
 	assert.Equal(t, http.StatusFound, w.Code)
 	assert.Equal(t, "/persons", w.Header().Get("Location"))
+}
+
+func TestPersonsList_Empty(t *testing.T) {
+	s := newTestServer(t)
+	w := doGet(t, s, "/persons")
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), "People")
+	assert.Contains(t, w.Body.String(), "New Person")
+}
+
+func TestPersonsList_ShowsPersons(t *testing.T) {
+	sqlDB, err := db.Open(":memory:")
+	require.NoError(t, err)
+	t.Cleanup(func() { sqlDB.Close() })
+	createTestPerson(t, sqlDB, "Alice Example")
+	s, err := web.NewServer(dal.New(sqlDB))
+	require.NoError(t, err)
+
+	w := doGet(t, s, "/persons")
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), "Alice Example")
+}
+
+func TestPersonsSearch_ReturnsPartial(t *testing.T) {
+	sqlDB, err := db.Open(":memory:")
+	require.NoError(t, err)
+	t.Cleanup(func() { sqlDB.Close() })
+	createTestPerson(t, sqlDB, "Bob Builder")
+	s, err := web.NewServer(dal.New(sqlDB))
+	require.NoError(t, err)
+
+	w := doGetHX(t, s, "/persons?q=Bob")
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.NotContains(t, w.Body.String(), "<!DOCTYPE")
+	assert.Contains(t, w.Body.String(), "Bob Builder")
 }
