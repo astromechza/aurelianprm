@@ -1,1 +1,48 @@
-{{define "person-edit-form"}}{{end}}
+{{define "person-edit-form"}}
+<article id="person-header">
+  <form
+    hx-put="/persons/{{.Person.ID}}"
+    hx-target="body"
+    hx-push-url="true"
+  >
+    <div class="grid">
+      <label>
+        Name *
+        <input type="text" name="name" value="{{.PersonData.Name}}" required>
+      </label>
+      <label>
+        Nickname
+        <input type="text" name="nickName" value="{{.PersonData.NickName}}">
+      </label>
+    </div>
+    <div class="grid">
+      <label>
+        Birth Year
+        <input type="number" name="birthYear" value="{{if .PersonData.BirthYear}}{{.PersonData.BirthYear}}{{end}}" min="1" max="9999">
+      </label>
+      <label>
+        Birth Month
+        <input type="number" name="birthMonth" value="{{if .PersonData.BirthMonth}}{{.PersonData.BirthMonth}}{{end}}" min="1" max="12">
+      </label>
+      <label>
+        Birth Day
+        <input type="number" name="birthDay" value="{{if .PersonData.BirthDay}}{{.PersonData.BirthDay}}{{end}}" min="1" max="31">
+      </label>
+    </div>
+    <label>
+      Note
+      <textarea name="note">{{.PersonData.Note}}</textarea>
+    </label>
+    <div style="display:flex;gap:1rem;">
+      <button type="submit">Save</button>
+      <button
+        type="button"
+        hx-get="/persons/{{.Person.ID}}"
+        hx-target="body"
+        hx-push-url="true"
+        class="secondary outline"
+      >Cancel</button>
+    </div>
+  </form>
+</article>
+{{end}}

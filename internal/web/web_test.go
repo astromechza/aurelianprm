@@ -155,3 +155,47 @@ func TestPersonsCreate_RequiresName(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code) // re-renders form
 	assert.Contains(t, w.Body.String(), "required")
 }
+
+func TestPersonsDetail_Returns200(t *testing.T) {
+	sqlDB, err := db.Open(":memory:")
+	require.NoError(t, err)
+	t.Cleanup(func() { sqlDB.Close() })
+	id := createTestPerson(t, sqlDB, "Carol Detail")
+	s, err := web.NewServer(dal.New(sqlDB))
+	require.NoError(t, err)
+
+	w := doGet(t, s, "/persons/"+id)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), "Carol Detail")
+}
+
+func TestPersonsDetail_NotFound(t *testing.T) {
+	s := newTestServer(t)
+	w := doGet(t, s, "/persons/NOTEXIST")
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestPersonsUpdate_Redirects(t *testing.T) {
+	sqlDB, err := db.Open(":memory:")
+	require.NoError(t, err)
+	t.Cleanup(func() { sqlDB.Close() })
+	id := createTestPerson(t, sqlDB, "Dave Old")
+	s, err := web.NewServer(dal.New(sqlDB))
+	require.NoError(t, err)
+
+	w := doMethod(t, s, http.MethodPut, "/persons/"+id, "name=Dave+New")
+	assert.Equal(t, http.StatusSeeOther, w.Code)
+}
+
+func TestPersonsDelete_Redirects(t *testing.T) {
+	sqlDB, err := db.Open(":memory:")
+	require.NoError(t, err)
+	t.Cleanup(func() { sqlDB.Close() })
+	id := createTestPerson(t, sqlDB, "Eve Delete")
+	s, err := web.NewServer(dal.New(sqlDB))
+	require.NoError(t, err)
+
+	w := doMethod(t, s, http.MethodDelete, "/persons/"+id, "")
+	assert.Equal(t, http.StatusSeeOther, w.Code)
+	assert.Equal(t, "/persons", w.Header().Get("Location"))
+}

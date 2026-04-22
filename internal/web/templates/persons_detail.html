@@ -1,1 +1,94 @@
-{{define "persons-detail"}}{{template "layout-head" .}}persons-detail{{template "layout-foot" .}}{{end}}
+{{define "persons-detail"}}
+{{template "layout-head" .}}
+
+<article id="person-header">
+  <header>
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <h2 style="margin:0;">{{.PersonData.Name}}
+          {{if .PersonData.NickName}}<small> ({{.PersonData.NickName}})</small>{{end}}
+        </h2>
+        {{if .PersonData.BirthYear}}
+        <small>Born: {{.PersonData.BirthYear}}{{if .PersonData.BirthMonth}}-{{printf "%02d" .PersonData.BirthMonth}}{{end}}{{if .PersonData.BirthDay}}-{{printf "%02d" .PersonData.BirthDay}}{{end}}</small>
+        {{end}}
+      </div>
+      <button
+        hx-get="/persons/{{.Person.ID}}/edit-form"
+        hx-target="#person-header"
+        hx-swap="outerHTML"
+        class="outline secondary"
+      >Edit</button>
+    </div>
+    {{if .PersonData.Note}}<p>{{.PersonData.Note}}</p>{{end}}
+  </header>
+</article>
+
+{{range .Sections}}
+{{template "entity-section" .}}
+{{end}}
+
+{{range .People}}
+<article id="rel-section-{{.RelType}}">
+  <header><h3>{{.Label}}</h3></header>
+  <table>
+    <tbody id="rel-list-{{.RelType}}">
+      {{range .Persons}}
+      <tr data-row>
+        <td><a href="/persons/{{.Person.ID}}">{{personName .Person}}</a></td>
+        <td>{{.Relationship.Type}}</td>
+        <td>{{strOrEmpty .Relationship.DateFrom}}{{if .Relationship.DateTo}} – {{strOrEmpty .Relationship.DateTo}}{{end}}</td>
+        <td>{{strOrEmpty .Relationship.Note}}</td>
+        <td>
+          <button
+            hx-get="/relationships/{{.Relationship.ID}}/edit?person_id={{$.Person.ID}}"
+            hx-target="closest [data-row]"
+            hx-swap="outerHTML"
+            class="outline secondary"
+          >Edit</button>
+          <button
+            hx-delete="/relationships/{{.Relationship.ID}}"
+            hx-confirm="Remove this link?"
+            hx-target="closest [data-row]"
+            hx-swap="outerHTML"
+            class="outline secondary"
+          >Delete</button>
+        </td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  <details>
+    <summary>+ Link person ({{.RelType}})</summary>
+    <form
+      hx-post="/persons/{{.PersonID}}/relationships"
+      hx-target="#rel-list-{{.RelType}}"
+      hx-swap="beforeend"
+    >
+      <input type="hidden" name="rel_type" value="{{.RelType}}">
+      <label>
+        Search person
+        <input type="search"
+          placeholder="Type name…"
+          hx-get="/persons"
+          hx-trigger="keyup changed delay:300ms"
+          hx-target="#person-search-results-{{.RelType}}"
+        >
+      </label>
+      <div id="person-search-results-{{.RelType}}"></div>
+      <input type="hidden" name="person_b_id" id="person-b-id-{{.RelType}}">
+      <p id="selected-person-{{.RelType}}"><em>No person selected</em></p>
+      <div class="grid">
+        <label>Date From <input type="text" name="date_from" placeholder="YYYY or YYYY-MM or YYYY-MM-DD"></label>
+        <label>Date To <input type="text" name="date_to" placeholder="YYYY or YYYY-MM or YYYY-MM-DD"></label>
+        <label>Note <input type="text" name="note"></label>
+      </div>
+      <button type="submit">Link Person</button>
+    </form>
+  </details>
+</article>
+{{end}}
+
+<p style="margin-top:2rem;"><a href="/persons">← Back to People</a></p>
+
+{{template "layout-foot" .}}
+{{end}}
