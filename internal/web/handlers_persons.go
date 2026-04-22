@@ -49,10 +49,15 @@ func (s *Server) handlePersonsList(w http.ResponseWriter, r *http.Request) {
 			BirthYear: pd.BirthYear,
 		})
 	}
-	view := PersonListView{Query: q, Persons: items}
+	linkRel := r.URL.Query().Get("link_rel")
+	view := PersonListView{Query: q, LinkRel: linkRel, Persons: items}
 
 	if isHTMX(r) {
-		s.render(w, "persons-rows", view)
+		if linkRel != "" {
+			s.render(w, "link-persons-rows", view)
+		} else {
+			s.render(w, "persons-rows", view)
+		}
 	} else {
 		s.render(w, "persons-list", view)
 	}

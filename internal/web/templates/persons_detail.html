@@ -69,7 +69,7 @@
         Search person
         <input type="search"
           placeholder="Type name…"
-          hx-get="/persons"
+          hx-get="/persons?link_rel={{.RelType}}"
           hx-trigger="keyup changed delay:300ms"
           hx-target="#person-search-results-{{.RelType}}"
         >

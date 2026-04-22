@@ -1,0 +1,20 @@
+{{define "link-persons-rows"}}
+<table>
+<tbody>
+{{range .Persons}}
+<tr>
+  <td>{{.Name}}</td>
+  <td>{{.NickName}}</td>
+  <td>
+    <button
+      type="button"
+      hx-on:click="document.getElementById('person-b-id-{{$.LinkRel}}').value='{{.ID}}'; document.getElementById('selected-person-{{$.LinkRel}}').innerHTML='Selected: <strong>{{.Name}}</strong>'"
+    >Select</button>
+  </td>
+</tr>
+{{else}}
+<tr><td colspan="3"><em>No results.</em></td></tr>
+{{end}}
+</tbody>
+</table>
+{{end}}
