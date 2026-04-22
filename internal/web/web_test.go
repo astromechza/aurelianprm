@@ -199,3 +199,44 @@ func TestPersonsDelete_Redirects(t *testing.T) {
 	assert.Equal(t, http.StatusSeeOther, w.Code)
 	assert.Equal(t, "/persons", w.Header().Get("Location"))
 }
+
+func TestEntitiesCreate_ReturnsPartial(t *testing.T) {
+	sqlDB, err := db.Open(":memory:")
+	require.NoError(t, err)
+	t.Cleanup(func() { sqlDB.Close() })
+	personID := createTestPerson(t, sqlDB, "Frank Entity")
+	s, err := web.NewServer(dal.New(sqlDB))
+	require.NoError(t, err)
+
+	body := "type=EmailAddress&email=frank%40example.com&label=work"
+	w := doPost(t, s, "/persons/"+personID+"/entities", body)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), "frank@example.com")
+	// Should NOT contain full layout
+	assert.NotContains(t, w.Body.String(), "<!DOCTYPE")
+}
+
+func TestEntitiesDelete_Returns200(t *testing.T) {
+	sqlDB, err := db.Open(":memory:")
+	require.NoError(t, err)
+	t.Cleanup(func() { sqlDB.Close() })
+	personID := createTestPerson(t, sqlDB, "Grace Delete")
+	s, err := web.NewServer(dal.New(sqlDB))
+	require.NoError(t, err)
+
+	// Create entity via handler to get its ID
+	body := "type=EmailAddress&email=grace%40example.com"
+	w := doPost(t, s, "/persons/"+personID+"/entities", body)
+	require.Equal(t, http.StatusOK, w.Code)
+
+	// Extract entity ID from response (/entities/XXXX/edit pattern)
+	respBody := w.Body.String()
+	eidStart := strings.Index(respBody, "/entities/")
+	require.NotEqual(t, -1, eidStart, "response should contain /entities/ link")
+	eidEnd := strings.Index(respBody[eidStart+len("/entities/"):], "/")
+	require.NotEqual(t, -1, eidEnd)
+	eid := respBody[eidStart+len("/entities/") : eidStart+len("/entities/")+eidEnd]
+
+	w2 := doMethod(t, s, http.MethodDelete, "/entities/"+eid, "")
+	assert.Equal(t, http.StatusOK, w2.Code)
+}

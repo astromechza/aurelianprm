@@ -1,2 +1,75 @@
-{{define "entity-form"}}{{end}}
-{{define "entity-form-fields"}}{{end}}
+{{define "entity-form"}}
+{{if .EditMode}}
+<tr data-row>
+  <td colspan="2">
+    <form
+      hx-put="/entities/{{.EntityID}}"
+      hx-target="closest [data-row]"
+      hx-swap="outerHTML"
+    >
+      {{template "entity-form-fields" .}}
+      <div style="display:flex;gap:0.5rem;">
+        <button type="submit">Save</button>
+        <button type="button"
+          hx-get="/entities/{{.EntityID}}/cancel"
+          hx-target="closest [data-row]"
+          hx-swap="outerHTML"
+          class="secondary outline"
+        >Cancel</button>
+      </div>
+    </form>
+  </td>
+</tr>
+{{end}}
+{{end}}
+
+{{define "entity-form-fields"}}
+{{$type := .Type}}
+{{$dm := .DataMap}}
+{{if .Error}}<p class="error"><small>{{.Error}}</small></p>{{end}}
+
+{{if eq $type "EmailAddress"}}
+<div class="grid">
+  <label>Email * <input type="email" name="email" value="{{index $dm "email"}}" required></label>
+  <label>Label <input type="text" name="label" value="{{index $dm "label"}}" placeholder="work, personal…"></label>
+</div>
+{{else if eq $type "PhoneNumber"}}
+<div class="grid">
+  <label>Telephone * <input type="tel" name="telephone" value="{{index $dm "telephone"}}" required></label>
+  <label>Label <input type="text" name="label" value="{{index $dm "label"}}" placeholder="mobile, home…"></label>
+</div>
+{{else if eq $type "WebSite"}}
+<div class="grid">
+  <label>URL * <input type="url" name="url" value="{{index $dm "url"}}" required></label>
+  <label>Title <input type="text" name="title" value="{{index $dm "title"}}"></label>
+  <label>Label <input type="text" name="label" value="{{index $dm "label"}}"></label>
+</div>
+{{else if eq $type "SocialNetwork"}}
+<div class="grid">
+  <label>Platform * <input type="text" name="platform" value="{{index $dm "platform"}}" required placeholder="LinkedIn, GitHub…"></label>
+  <label>Handle <input type="text" name="handle" value="{{index $dm "handle"}}"></label>
+  <label>URL <input type="url" name="url" value="{{index $dm "url"}}"></label>
+</div>
+{{else if eq $type "PostalAddress"}}
+<div class="grid">
+  <label>Label <input type="text" name="label" value="{{index $dm "label"}}" placeholder="home, work…"></label>
+  <label>Country (ISO 2) <input type="text" name="country" value="{{index $dm "country"}}" maxlength="2" placeholder="US"></label>
+</div>
+<div class="grid">
+  <label>City <input type="text" name="city" value="{{index $dm "city"}}"></label>
+  <label>Street Address <input type="text" name="streetAddress" value="{{index $dm "streetAddress"}}"></label>
+</div>
+{{else if eq $type "Career"}}
+<div class="grid">
+  <label>Role * <input type="text" name="role" value="{{index $dm "role"}}" required></label>
+  <label>Organization * <input type="text" name="organization" value="{{index $dm "organization"}}" required></label>
+  <label>Label <input type="text" name="label" value="{{index $dm "label"}}" placeholder="current, former…"></label>
+</div>
+{{else if eq $type "Pet"}}
+<div class="grid">
+  <label>Name * <input type="text" name="name" value="{{index $dm "name"}}" required></label>
+  <label>Species <input type="text" name="species" value="{{index $dm "species"}}" placeholder="dog, cat…"></label>
+  <label>Birth Date <input type="date" name="birthDate" value="{{index $dm "birthDate"}}"></label>
+</div>
+{{end}}
+{{end}}

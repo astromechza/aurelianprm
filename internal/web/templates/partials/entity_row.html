@@ -1,1 +1,31 @@
-{{define "entity-row"}}{{end}}
+{{define "entity-row"}}
+<tr data-row>
+  <td>
+    {{$type := .Entity.Type}}
+    {{$dm := .DataMap}}
+    {{if eq $type "EmailAddress"}}{{index $dm "email"}}{{if index $dm "label"}} <small>({{index $dm "label"}})</small>{{end}}
+    {{else if eq $type "PhoneNumber"}}{{index $dm "telephone"}}{{if index $dm "label"}} <small>({{index $dm "label"}})</small>{{end}}
+    {{else if eq $type "WebSite"}}<a href="{{index $dm "url"}}" target="_blank" rel="noopener">{{if index $dm "title"}}{{index $dm "title"}}{{else}}{{index $dm "url"}}{{end}}</a>{{if index $dm "label"}} <small>({{index $dm "label"}})</small>{{end}}
+    {{else if eq $type "SocialNetwork"}}{{index $dm "platform"}}{{if index $dm "handle"}}: {{index $dm "handle"}}{{end}}{{if index $dm "url"}} <small><a href="{{index $dm "url"}}" target="_blank" rel="noopener">↗</a></small>{{end}}
+    {{else if eq $type "PostalAddress"}}{{if index $dm "streetAddress"}}{{index $dm "streetAddress"}}, {{end}}{{if index $dm "city"}}{{index $dm "city"}}{{end}}{{if index $dm "country"}} {{index $dm "country"}}{{end}}{{if index $dm "label"}} <small>({{index $dm "label"}})</small>{{end}}
+    {{else if eq $type "Career"}}{{index $dm "role"}} @ {{index $dm "organization"}}{{if index $dm "label"}} <small>({{index $dm "label"}})</small>{{end}}
+    {{else if eq $type "Pet"}}{{index $dm "name"}}{{if index $dm "species"}} ({{index $dm "species"}}){{end}}
+    {{else}}{{$type}}{{end}}
+  </td>
+  <td>
+    <button
+      hx-get="/entities/{{.Entity.ID}}/edit"
+      hx-target="closest [data-row]"
+      hx-swap="outerHTML"
+      class="outline secondary"
+    >Edit</button>
+    <button
+      hx-delete="/entities/{{.Entity.ID}}"
+      hx-confirm="Delete this item?"
+      hx-target="closest [data-row]"
+      hx-swap="outerHTML"
+      class="outline secondary"
+    >Delete</button>
+  </td>
+</tr>
+{{end}}

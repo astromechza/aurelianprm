@@ -1,1 +1,28 @@
-{{define "entity-section"}}{{end}}
+{{define "entity-section"}}
+<article id="entity-section-{{.RelType}}">
+  <header>
+    <h3>{{.Label}}</h3>
+  </header>
+  {{if .Entities}}
+  <table>
+    <tbody id="entity-list-{{.RelType}}">
+      {{range .Entities}}
+      {{template "entity-row" .}}
+      {{end}}
+    </tbody>
+  </table>
+  {{end}}
+  <details>
+    <summary>+ Add {{.Label}}</summary>
+    <form
+      hx-post="/persons/{{.PersonID}}/entities"
+      hx-target="#entity-section-{{.RelType}}"
+      hx-swap="outerHTML"
+    >
+      <input type="hidden" name="type" value="{{.EntityType}}">
+      {{template "entity-form-fields" (entityFormCreate .PersonID .EntityType)}}
+      <button type="submit">Add</button>
+    </form>
+  </details>
+</article>
+{{end}}
