@@ -9,6 +9,8 @@ require (
 	modernc.org/sqlite v1.49.1
 )
 
+require github.com/go-chi/chi/v5 v5.2.5 // indirect
+
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect

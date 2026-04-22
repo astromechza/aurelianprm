@@ -226,6 +226,18 @@ func (q *Queries) UpdateRelationship(ctx context.Context, params UpdateRelations
 	return nil
 }
 
+// GetRelationship fetches a single relationship by ID. Returns sql.ErrNoRows if not found.
+func (q *Queries) GetRelationship(ctx context.Context, id string) (Relationship, error) {
+	const query = `
+		SELECT id, entity_a_id, entity_b_id, type, date_from, date_to, note, created_at, updated_at
+		FROM relationships WHERE id = ?`
+	r, err := scanRelationship(q.db.QueryRowContext(ctx, query, id))
+	if err != nil {
+		return Relationship{}, fmt.Errorf("get relationship: %w", err)
+	}
+	return r, nil
+}
+
 // GetNeighboursByRelType returns neighbours connected via a specific relationship type.
 func (q *Queries) GetNeighboursByRelType(ctx context.Context, entityID, relType string) ([]NeighbourResult, error) {
 	const stmt = `
