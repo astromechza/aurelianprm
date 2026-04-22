@@ -233,7 +233,7 @@ func (q *Queries) GetRelationship(ctx context.Context, id string) (Relationship,
 		FROM relationships WHERE id = ?`
 	r, err := scanRelationship(q.db.QueryRowContext(ctx, query, id))
 	if err != nil {
-		return Relationship{}, fmt.Errorf("get relationship: %w", err)
+		return Relationship{}, err
 	}
 	return r, nil
 }
