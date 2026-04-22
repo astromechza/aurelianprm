@@ -1,2 +1,29 @@
-{{define "layout-head"}}<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>AurelianPRM</title></head><body><main class="container">{{end}}
-{{define "layout-foot"}}</main></body></html>{{end}}
+{{define "layout-head"}}
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AurelianPRM</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <script src="https://unpkg.com/htmx.org@2" defer></script>
+</head>
+<body>
+<header class="container-fluid">
+  <nav>
+    <ul>
+      <li><strong><a href="/persons" class="contrast">AurelianPRM</a></strong></li>
+    </ul>
+    <ul>
+      <li><a href="/persons">People</a></li>
+    </ul>
+  </nav>
+</header>
+<main class="container">
+{{end}}
+
+{{define "layout-foot"}}
+</main>
+</body>
+</html>
+{{end}}
