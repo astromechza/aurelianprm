@@ -1,1 +1,40 @@
-{{define "persons-create"}}{{template "layout-head" .}}persons-create{{template "layout-foot" .}}{{end}}
+{{define "persons-create"}}
+{{template "layout-head" .}}
+<article>
+  <header><h2>New Person</h2></header>
+  {{if .}}{{with .Error}}<p class="error"><small>{{.}}</small></p>{{end}}{{end}}
+  <form action="/persons" method="post">
+    <label>
+      Name <span aria-hidden="true">*</span>
+      <input type="text" name="name" required placeholder="Full name" autofocus>
+    </label>
+    <label>
+      Nickname
+      <input type="text" name="nickName" placeholder="Preferred name or alias">
+    </label>
+    <div class="grid">
+      <label>
+        Birth Year
+        <input type="number" name="birthYear" min="1" max="9999" placeholder="YYYY">
+      </label>
+      <label>
+        Birth Month
+        <input type="number" name="birthMonth" min="1" max="12" placeholder="MM">
+      </label>
+      <label>
+        Birth Day
+        <input type="number" name="birthDay" min="1" max="31" placeholder="DD">
+      </label>
+    </div>
+    <label>
+      Note
+      <textarea name="note" placeholder="Any notes about this person"></textarea>
+    </label>
+    <div style="display:flex;gap:1rem;">
+      <button type="submit">Create Person</button>
+      <a href="/persons" role="button" class="secondary outline">Cancel</a>
+    </div>
+  </form>
+</article>
+{{template "layout-foot" .}}
+{{end}}

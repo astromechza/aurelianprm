@@ -134,3 +134,24 @@ func TestPersonsCreate_SearchableAfterCreate(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w2.Code)
 	assert.Contains(t, w2.Body.String(), "Zara Searchable")
 }
+
+func TestPersonsNew_ReturnsForm(t *testing.T) {
+	s := newTestServer(t)
+	w := doGet(t, s, "/persons/new")
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), `action="/persons"`)
+}
+
+func TestPersonsCreate_RedirectsToDetail(t *testing.T) {
+	s := newTestServer(t)
+	w := doPost(t, s, "/persons", "name=Alice+Test")
+	assert.Equal(t, http.StatusSeeOther, w.Code)
+	assert.Contains(t, w.Header().Get("Location"), "/persons/")
+}
+
+func TestPersonsCreate_RequiresName(t *testing.T) {
+	s := newTestServer(t)
+	w := doPost(t, s, "/persons", "name=")
+	assert.Equal(t, http.StatusOK, w.Code) // re-renders form
+	assert.Contains(t, w.Body.String(), "required")
+}
