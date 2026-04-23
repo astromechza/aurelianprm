@@ -2,6 +2,7 @@ package web_test
 
 import (
 	"database/sql"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -214,6 +215,49 @@ func TestEntitiesCreate_ReturnsPartial(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "frank@example.com")
 	// Should NOT contain full layout
 	assert.NotContains(t, w.Body.String(), "<!DOCTYPE")
+}
+
+func TestRelationshipsCreate_ReturnsPartial(t *testing.T) {
+	sqlDB, err := db.Open(":memory:")
+	require.NoError(t, err)
+	t.Cleanup(func() { sqlDB.Close() })
+	personAID := createTestPerson(t, sqlDB, "Alice Rel")
+	personBID := createTestPerson(t, sqlDB, "Bob Rel")
+	s, err := web.NewServer(dal.New(sqlDB))
+	require.NoError(t, err)
+
+	body := fmt.Sprintf("person_b_id=%s&rel_type=knows", personBID)
+	w := doPost(t, s, "/persons/"+personAID+"/relationships", body)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), "Bob Rel")
+	assert.NotContains(t, w.Body.String(), "<!DOCTYPE")
+}
+
+func TestRelationshipsDelete_Returns200(t *testing.T) {
+	sqlDB, err := db.Open(":memory:")
+	require.NoError(t, err)
+	t.Cleanup(func() { sqlDB.Close() })
+	personAID := createTestPerson(t, sqlDB, "Carol Rel")
+	personBID := createTestPerson(t, sqlDB, "Dave Rel")
+	s, err := web.NewServer(dal.New(sqlDB))
+	require.NoError(t, err)
+
+	// Create relationship via handler
+	body := fmt.Sprintf("person_b_id=%s&rel_type=knows", personBID)
+	w := doPost(t, s, "/persons/"+personAID+"/relationships", body)
+	require.Equal(t, http.StatusOK, w.Code)
+
+	// Extract relationship ID from /relationships/{rid}/ pattern in response
+	respBody := w.Body.String()
+	ridStart := strings.Index(respBody, "/relationships/")
+	require.NotEqual(t, -1, ridStart, "response should contain /relationships/ link")
+	after := respBody[ridStart+len("/relationships/"):]
+	ridEnd := strings.IndexAny(after, "/?\"")
+	require.NotEqual(t, -1, ridEnd, "should find end of relationship ID")
+	rid := after[:ridEnd]
+
+	w2 := doMethod(t, s, http.MethodDelete, "/relationships/"+rid, "")
+	assert.Equal(t, http.StatusOK, w2.Code)
 }
 
 func TestEntitiesDelete_Returns200(t *testing.T) {

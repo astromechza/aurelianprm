@@ -1,1 +1,19 @@
-{{define "relationship-row"}}{{end}}
+{{define "relationship-row"}}
+<tr data-row>
+  <td><a href="/persons/{{.PersonWithRel.Person.ID}}">{{personName .PersonWithRel.Person}}</a></td>
+  <td>{{.PersonWithRel.Relationship.Type}}</td>
+  <td>
+    {{strOrEmpty .PersonWithRel.Relationship.DateFrom}}
+    {{if and .PersonWithRel.Relationship.DateFrom .PersonWithRel.Relationship.DateTo}} – {{end}}
+    {{strOrEmpty .PersonWithRel.Relationship.DateTo}}
+  </td>
+  <td>{{strOrEmpty .PersonWithRel.Relationship.Note}}</td>
+  <td>
+    <button hx-get="/relationships/{{.PersonWithRel.Relationship.ID}}/edit?person_id={{.PersonID}}"
+            hx-target="closest [data-row]" hx-swap="outerHTML">Edit</button>
+    <button hx-delete="/relationships/{{.PersonWithRel.Relationship.ID}}"
+            hx-confirm="Delete this relationship?"
+            hx-target="closest [data-row]" hx-swap="outerHTML">Delete</button>
+  </td>
+</tr>
+{{end}}

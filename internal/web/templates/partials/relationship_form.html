@@ -1,1 +1,18 @@
-{{define "relationship-form"}}{{end}}
+{{define "relationship-form"}}
+<tr data-row>
+  <td colspan="5">
+    <form hx-put="/relationships/{{.RelID}}?person_id={{.PersonID}}"
+          hx-target="closest [data-row]" hx-swap="outerHTML">
+      {{if .OtherPerson}}<strong>{{personName .OtherPerson}}</strong>{{end}}
+      {{if .Error}}<small class="error">{{.Error}}</small>{{end}}
+      <input type="text" name="date_from" placeholder="Date From (YYYY or YYYY-MM or YYYY-MM-DD)" value="{{.DateFrom}}">
+      <input type="text" name="date_to" placeholder="Date To (YYYY or YYYY-MM or YYYY-MM-DD)" value="{{.DateTo}}">
+      <input type="text" name="note" placeholder="Note" value="{{.Note}}">
+      <button type="submit">Save</button>
+      <button type="button"
+              hx-get="/relationships/{{.RelID}}/cancel?person_id={{.PersonID}}"
+              hx-target="closest [data-row]" hx-swap="outerHTML">Cancel</button>
+    </form>
+  </td>
+</tr>
+{{end}}

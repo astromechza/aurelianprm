@@ -80,6 +80,7 @@ func (s *Server) Handler() http.Handler {
 
 	r.Post("/persons/{id}/relationships", s.handleRelationshipsCreate)
 	r.Get("/relationships/{rid}/edit", s.handleRelationshipsEditForm)
+	r.Get("/relationships/{rid}/cancel", s.handleRelationshipsCancel)
 	r.Put("/relationships/{rid}", s.handleRelationshipsUpdate)
 	r.Delete("/relationships/{rid}", s.handleRelationshipsDelete)
 
