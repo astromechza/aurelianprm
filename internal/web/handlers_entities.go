@@ -142,6 +142,10 @@ func (s *Server) handleEntitiesCancel(w http.ResponseWriter, r *http.Request) {
 		return nil
 	})
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			http.NotFound(w, r)
+			return
+		}
 		s.serverError(w, r, err)
 		return
 	}
@@ -205,6 +209,10 @@ func (s *Server) handleEntitiesDelete(w http.ResponseWriter, r *http.Request) {
 		return q.DeleteEntity(ctx, eid)
 	})
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			http.NotFound(w, r)
+			return
+		}
 		s.serverError(w, r, err)
 		return
 	}
