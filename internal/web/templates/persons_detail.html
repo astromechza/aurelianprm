@@ -8,8 +8,8 @@
         <h2 style="margin:0;">{{.PersonData.Name}}
           {{if .PersonData.NickName}}<small> ({{.PersonData.NickName}})</small>{{end}}
         </h2>
-        {{if .PersonData.BirthYear}}
-        <small>Born: {{.PersonData.BirthYear}}{{if .PersonData.BirthMonth}}-{{printf "%02d" .PersonData.BirthMonth}}{{end}}{{if .PersonData.BirthDay}}-{{printf "%02d" .PersonData.BirthDay}}{{end}}</small>
+        {{if or .PersonData.BirthYear .PersonData.BirthMonth}}
+        <small>Born: {{if .PersonData.BirthYear}}{{.PersonData.BirthYear}}{{else}}--{{end}}{{if .PersonData.BirthMonth}}-{{printf "%02d" .PersonData.BirthMonth}}{{end}}{{if .PersonData.BirthDay}}-{{printf "%02d" .PersonData.BirthDay}}{{end}}</small>
         {{end}}
       </div>
       <button
@@ -65,6 +65,7 @@
       hx-post="/persons/{{.Person.ID}}/relationships"
       hx-target="#rel-list"
       hx-swap="beforeend"
+      hx-on:htmx:after-request="if(event.detail.successful){this.reset();document.getElementById('person-search-results-people').innerHTML='';document.getElementById('selected-person-link').innerHTML='<em>No person selected.</em>';}"
     >
       <div class="grid">
         <label>
@@ -81,6 +82,7 @@
         <label>
           Search person
           <input type="search"
+            name="q"
             placeholder="Type name…"
             hx-get="/persons?link_rel=link"
             hx-trigger="input delay:300ms"
