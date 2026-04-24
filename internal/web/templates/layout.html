@@ -5,8 +5,24 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>AurelianPRM</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.compact.min.css">
   <script src="https://unpkg.com/htmx.org@2" defer></script>
+  <style>
+    :root {
+      --pico-spacing: 0.75rem;
+      --pico-typography-spacing-vertical: 0.75rem;
+      --pico-form-element-spacing-vertical: 0.375rem;
+      --pico-form-element-spacing-horizontal: 0.625rem;
+      --pico-table-cell-padding-vertical: 0.375rem;
+      --pico-table-cell-padding-horizontal: 0.625rem;
+    }
+    body > header { padding-block: 0.375rem; }
+    article { padding: 0.75rem 1rem; }
+    article header, article footer { padding: 0.5rem 0; margin-bottom: 0.5rem; }
+    h2, h3 { --pico-typography-spacing-vertical: 0.5rem; }
+    details summary { padding: 0.375rem 0; }
+    table { margin-bottom: 0.5rem; }
+  </style>
 </head>
 <body>
 <header class="container-fluid">
