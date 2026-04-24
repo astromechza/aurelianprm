@@ -8,7 +8,7 @@
   <td>
     <button
       type="button"
-      hx-on:click="document.getElementById('person-b-id-{{$.LinkRel}}').value='{{.ID}}'; document.getElementById('selected-person-{{$.LinkRel}}').innerHTML='Selected: <strong>{{.Name}}</strong>'"
+      onclick="document.getElementById('person-b-id-{{$.LinkRel}}').value='{{.ID}}'; document.getElementById('selected-person-{{$.LinkRel}}').innerHTML='Selected: <strong>{{.Name}}</strong>'"
     >Select</button>
   </td>
 </tr>
