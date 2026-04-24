@@ -1,7 +1,7 @@
 {{define "persons-list"}}
 {{template "layout-head" .}}
 <article {{if not .UpcomingBirthdays}}class="birthday-banner-empty"{{end}} id="birthday-banner">
-  <header>🎂 Upcoming Birthdays</header>
+  <header>🎂 Birthdays (±7 days)</header>
   {{if .UpcomingBirthdays}}
   <ul>
     {{range .UpcomingBirthdays}}
@@ -9,7 +9,7 @@
     {{end}}
   </ul>
   {{else}}
-  <em>No birthdays in the next 7 days.</em>
+  <em>No birthdays within the past or next 7 days.</em>
   {{end}}
 </article>
 <article>
