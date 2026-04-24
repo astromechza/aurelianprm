@@ -4,7 +4,45 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 )
+
+var shortMonths = [13]string{"", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"}
+
+// fmtDate renders a date string ("YYYY", "YYYY-MM", "YYYY-MM-DD") with short month names.
+func fmtDate(s string) string {
+	if s == "" {
+		return ""
+	}
+	var y, m, d int
+	if n, _ := fmt.Sscanf(s, "%d-%d-%d", &y, &m, &d); n == 3 && m >= 1 && m <= 12 {
+		return fmt.Sprintf("%d %s %d", d, shortMonths[m], y)
+	}
+	if n, _ := fmt.Sscanf(s, "%d-%d", &y, &m); n == 2 && m >= 1 && m <= 12 {
+		return fmt.Sprintf("%s %d", shortMonths[m], y)
+	}
+	return s
+}
+
+// fmtBirthDate renders year/month/day integers with short month names.
+// Zero values are omitted: year=1990,month=3,day=15 → "15 Mar 1990".
+func fmtBirthDate(year, month, day int) string {
+	if year == 0 && month == 0 {
+		return ""
+	}
+	var parts []string
+	if month >= 1 && month <= 12 {
+		if day > 0 {
+			parts = append(parts, fmt.Sprintf("%d %s", day, shortMonths[month]))
+		} else {
+			parts = append(parts, shortMonths[month])
+		}
+	}
+	if year > 0 {
+		parts = append(parts, fmt.Sprintf("%d", year))
+	}
+	return strings.Join(parts, " ")
+}
 
 // entityRelTypes defines ordered display of contact entity sections.
 var entityRelTypes = []struct {

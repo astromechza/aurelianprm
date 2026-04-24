@@ -33,7 +33,9 @@ func NewServer(d *dal.DAL) (*Server, error) {
 			_ = json.Unmarshal(e.Data, &data)
 			return data.Name
 		},
-		"strOrEmpty": strOrEmpty,
+		"strOrEmpty":   strOrEmpty,
+		"fmtDate":      fmtDate,
+		"fmtBirthDate": fmtBirthDate,
 		"relDisplay": func(relType, direction string) string {
 			if relType == "parentOf" && direction == "inbound" {
 				return "Child Of"

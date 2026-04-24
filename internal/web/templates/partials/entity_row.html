@@ -11,7 +11,7 @@
     {{else if eq $type "Career"}}{{index $dm "role"}} @ {{index $dm "organization"}}{{if index $dm "label"}} <small>({{index $dm "label"}})</small>{{end}}
     {{else if eq $type "Pet"}}{{index $dm "name"}}{{if index $dm "species"}} ({{index $dm "species"}}){{end}}
     {{else}}{{$type}}{{end}}
-    {{if or .Relationship.DateFrom .Relationship.DateTo}}<br><small>{{strOrEmpty .Relationship.DateFrom}}{{if and .Relationship.DateFrom .Relationship.DateTo}} – {{strOrEmpty .Relationship.DateTo}}{{else if .Relationship.DateTo}}until {{strOrEmpty .Relationship.DateTo}}{{end}}</small>{{end}}
+    {{if or .Relationship.DateFrom .Relationship.DateTo}}<br><small>{{fmtDate (strOrEmpty .Relationship.DateFrom)}}{{if and .Relationship.DateFrom .Relationship.DateTo}} – {{fmtDate (strOrEmpty .Relationship.DateTo)}}{{else if .Relationship.DateTo}}until {{fmtDate (strOrEmpty .Relationship.DateTo)}}{{end}}</small>{{end}}
   </td>
   <td>
     <button

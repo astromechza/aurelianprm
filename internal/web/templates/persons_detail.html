@@ -8,9 +8,7 @@
         <h2 style="margin:0;">{{.PersonData.Name}}
           {{if .PersonData.NickName}}<small> ({{.PersonData.NickName}})</small>{{end}}
         </h2>
-        {{if or .PersonData.BirthYear .PersonData.BirthMonth}}
-        <small>Born: {{if .PersonData.BirthYear}}{{.PersonData.BirthYear}}{{else}}--{{end}}{{if .PersonData.BirthMonth}}-{{printf "%02d" .PersonData.BirthMonth}}{{end}}{{if .PersonData.BirthDay}}-{{printf "%02d" .PersonData.BirthDay}}{{end}}</small>
-        {{end}}
+        {{$bd := fmtBirthDate .PersonData.BirthYear .PersonData.BirthMonth .PersonData.BirthDay}}{{if $bd}}<small>Born: {{$bd}}</small>{{end}}
       </div>
       <button
         hx-get="/persons/{{.Person.ID}}/edit-form"
@@ -38,7 +36,7 @@
       <tr data-row>
         <td><a href="/persons/{{.Person.ID}}">{{personName .Person}}</a></td>
         <td>{{relDisplay .Relationship.Type .Direction}}</td>
-        <td>{{strOrEmpty .Relationship.DateFrom}}{{if .Relationship.DateTo}} – {{strOrEmpty .Relationship.DateTo}}{{end}}</td>
+        <td>{{fmtDate (strOrEmpty .Relationship.DateFrom)}}{{if and .Relationship.DateFrom .Relationship.DateTo}} – {{fmtDate (strOrEmpty .Relationship.DateTo)}}{{else if .Relationship.DateTo}}until {{fmtDate (strOrEmpty .Relationship.DateTo)}}{{end}}</td>
         <td>{{strOrEmpty .Relationship.Note}}</td>
         <td>
           <button
