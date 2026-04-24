@@ -310,6 +310,15 @@ func TestAPISearchEntities(t *testing.T) {
 	s, err := web.NewServer(dal.New(sqlDB))
 	require.NoError(t, err)
 
+	// Create a Pet entity to test type filter exclusion
+	petBody := map[string]any{
+		"type":         "Pet",
+		"display_name": "Alice API",
+		"data":         map[string]any{"name": "Fido"},
+	}
+	w1 := doAPIJSON(t, s, http.MethodPost, "/api/entities", petBody)
+	require.Equal(t, http.StatusCreated, w1.Code)
+
 	w := doAPIJSON(t, s, http.MethodPost, "/api/search-entities", map[string]string{"q": "Alice", "type": "Person"})
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "application/json", w.Header().Get("Content-Type"))
@@ -331,6 +340,7 @@ func TestAPIGetEntity_Found(t *testing.T) {
 
 	w := doAPIJSON(t, s, http.MethodGet, "/api/entities/"+id, nil)
 	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "application/json", w.Header().Get("Content-Type"))
 	var entity map[string]any
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &entity))
 	assert.Equal(t, id, entity["id"])
