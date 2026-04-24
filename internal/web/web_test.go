@@ -409,3 +409,103 @@ func TestAPIDeleteEntity_NotFound(t *testing.T) {
 	w := doAPIJSON(t, s, http.MethodDelete, "/api/entities/NOTEXIST", nil)
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }
+
+func TestAPICreateRelationship(t *testing.T) {
+	sqlDB, err := db.Open(":memory:")
+	require.NoError(t, err)
+	t.Cleanup(func() { sqlDB.Close() })
+	personAID := createTestPerson(t, sqlDB, "Frank API")
+	personBID := createTestPerson(t, sqlDB, "Grace API")
+	s, err := web.NewServer(dal.New(sqlDB))
+	require.NoError(t, err)
+
+	body := map[string]any{
+		"entity_a_id": personAID,
+		"entity_b_id": personBID,
+		"type":        "knows",
+		"note":        "met at conference",
+	}
+	w := doAPIJSON(t, s, http.MethodPost, "/api/relationships", body)
+	assert.Equal(t, http.StatusCreated, w.Code)
+	assert.Equal(t, "application/json", w.Header().Get("Content-Type"))
+	var rel map[string]any
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &rel))
+	assert.Equal(t, "knows", rel["type"])
+	assert.Equal(t, personAID, rel["entity_a_id"])
+	assert.Equal(t, "met at conference", rel["note"])
+	assert.NotEmpty(t, rel["id"])
+}
+
+func TestAPIGetRelationship(t *testing.T) {
+	sqlDB, err := db.Open(":memory:")
+	require.NoError(t, err)
+	t.Cleanup(func() { sqlDB.Close() })
+	personAID := createTestPerson(t, sqlDB, "Hal API")
+	personBID := createTestPerson(t, sqlDB, "Iris API")
+	s, err := web.NewServer(dal.New(sqlDB))
+	require.NoError(t, err)
+
+	// Create via API
+	body := map[string]any{"entity_a_id": personAID, "entity_b_id": personBID, "type": "friendOf"}
+	wCreate := doAPIJSON(t, s, http.MethodPost, "/api/relationships", body)
+	require.Equal(t, http.StatusCreated, wCreate.Code)
+	var created map[string]any
+	require.NoError(t, json.Unmarshal(wCreate.Body.Bytes(), &created))
+	rid := created["id"].(string)
+
+	w := doAPIJSON(t, s, http.MethodGet, "/api/relationships/"+rid, nil)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "application/json", w.Header().Get("Content-Type"))
+	var rel map[string]any
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &rel))
+	assert.Equal(t, rid, rel["id"])
+	assert.Equal(t, "friendOf", rel["type"])
+}
+
+func TestAPIUpdateRelationship(t *testing.T) {
+	sqlDB, err := db.Open(":memory:")
+	require.NoError(t, err)
+	t.Cleanup(func() { sqlDB.Close() })
+	personAID := createTestPerson(t, sqlDB, "Jack API")
+	personBID := createTestPerson(t, sqlDB, "Kate API")
+	s, err := web.NewServer(dal.New(sqlDB))
+	require.NoError(t, err)
+
+	body := map[string]any{"entity_a_id": personAID, "entity_b_id": personBID, "type": "knows"}
+	wCreate := doAPIJSON(t, s, http.MethodPost, "/api/relationships", body)
+	require.Equal(t, http.StatusCreated, wCreate.Code)
+	var created map[string]any
+	require.NoError(t, json.Unmarshal(wCreate.Body.Bytes(), &created))
+	rid := created["id"].(string)
+
+	update := map[string]any{"date_from": "2020", "note": "updated"}
+	w := doAPIJSON(t, s, http.MethodPut, "/api/relationships/"+rid, update)
+	assert.Equal(t, http.StatusOK, w.Code)
+	var rel map[string]any
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &rel))
+	assert.Equal(t, "2020", rel["date_from"])
+	assert.Equal(t, "updated", rel["note"])
+}
+
+func TestAPIDeleteRelationship(t *testing.T) {
+	sqlDB, err := db.Open(":memory:")
+	require.NoError(t, err)
+	t.Cleanup(func() { sqlDB.Close() })
+	personAID := createTestPerson(t, sqlDB, "Leo API")
+	personBID := createTestPerson(t, sqlDB, "Mia API")
+	s, err := web.NewServer(dal.New(sqlDB))
+	require.NoError(t, err)
+
+	body := map[string]any{"entity_a_id": personAID, "entity_b_id": personBID, "type": "knows"}
+	wCreate := doAPIJSON(t, s, http.MethodPost, "/api/relationships", body)
+	require.Equal(t, http.StatusCreated, wCreate.Code)
+	var created map[string]any
+	require.NoError(t, json.Unmarshal(wCreate.Body.Bytes(), &created))
+	rid := created["id"].(string)
+
+	w := doAPIJSON(t, s, http.MethodDelete, "/api/relationships/"+rid, nil)
+	assert.Equal(t, http.StatusNoContent, w.Code)
+
+	w2 := doAPIJSON(t, s, http.MethodGet, "/api/relationships/"+rid, nil)
+	assert.Equal(t, http.StatusNotFound, w2.Code)
+}

@@ -96,6 +96,10 @@ func (s *Server) Handler() http.Handler {
 		r.Post("/entities", s.handleAPICreateEntity)
 		r.Put("/entities/{id}", s.handleAPIUpdateEntity)
 		r.Delete("/entities/{id}", s.handleAPIDeleteEntity)
+		r.Get("/relationships/{rid}", s.handleAPIGetRelationship)
+		r.Post("/relationships", s.handleAPICreateRelationship)
+		r.Put("/relationships/{rid}", s.handleAPIUpdateRelationship)
+		r.Delete("/relationships/{rid}", s.handleAPIDeleteRelationship)
 	})
 
 	return r
