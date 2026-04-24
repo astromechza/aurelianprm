@@ -3,7 +3,10 @@
 <tr onclick="window.location='/persons/{{.ID}}'" style="cursor:pointer;">
   <td>{{.Name}}</td>
   <td>{{.NickName}}</td>
-  <td>{{if .BirthYear}}{{.BirthYear}}{{end}}</td>
+  <td>
+    {{if .BirthYear}}{{.BirthYear}} / {{if .BirthMonth}}{{printf "%02d" .BirthMonth}}{{else}}<em>unknown</em>{{end}}
+    {{else}}<em>unknown</em>{{end}}
+  </td>
   <td>
     <button
       onclick="event.stopPropagation()"

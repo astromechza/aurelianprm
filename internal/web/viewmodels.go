@@ -8,10 +8,11 @@ import (
 
 // PersonListItem is a decoded row for the persons list/search page.
 type PersonListItem struct {
-	ID        string
-	Name      string
-	NickName  string
-	BirthYear int
+	ID         string
+	Name       string
+	NickName   string
+	BirthYear  int
+	BirthMonth int
 }
 
 // PersonListView is the view model for the persons list page.

@@ -43,10 +43,11 @@ func (s *Server) handlePersonsList(w http.ResponseWriter, r *http.Request) {
 	for _, e := range persons {
 		pd := decodePersonData(e.Data)
 		items = append(items, PersonListItem{
-			ID:        e.ID,
-			Name:      pd.Name,
-			NickName:  pd.NickName,
-			BirthYear: pd.BirthYear,
+			ID:         e.ID,
+			Name:       pd.Name,
+			NickName:   pd.NickName,
+			BirthYear:  pd.BirthYear,
+			BirthMonth: pd.BirthMonth,
 		})
 	}
 	linkRel := r.URL.Query().Get("link_rel")
