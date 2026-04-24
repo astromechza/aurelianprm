@@ -13,12 +13,12 @@ import (
 
 // Entity represents a row in the entities table.
 type Entity struct {
-	ID          string
-	Type        string
-	DisplayName *string
-	Data        json.RawMessage
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	ID          string          `json:"id"`
+	Type        string          `json:"type"`
+	DisplayName *string         `json:"display_name,omitempty"`
+	Data        json.RawMessage `json:"data"`
+	CreatedAt   time.Time       `json:"created_at"`
+	UpdatedAt   time.Time       `json:"updated_at"`
 }
 
 // CreateEntityParams holds fields for inserting a new entity.

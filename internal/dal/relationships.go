@@ -11,15 +11,15 @@ import (
 
 // Relationship represents a row in the relationships table.
 type Relationship struct {
-	ID        string
-	EntityAID string
-	EntityBID string
-	Type      string
-	DateFrom  *string // partial ISO 8601: "YYYY", "YYYY-MM", or "YYYY-MM-DD"
-	DateTo    *string // partial ISO 8601: "YYYY", "YYYY-MM", or "YYYY-MM-DD"
-	Note      *string
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID        string    `json:"id"`
+	EntityAID string    `json:"entity_a_id"`
+	EntityBID string    `json:"entity_b_id"`
+	Type      string    `json:"type"`
+	DateFrom  *string   `json:"date_from"`
+	DateTo    *string   `json:"date_to"`
+	Note      *string   `json:"note"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 // partialDateRE matches YYYY, YYYY-MM, or YYYY-MM-DD.
