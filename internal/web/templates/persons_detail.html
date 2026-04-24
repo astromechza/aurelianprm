@@ -37,7 +37,7 @@
       {{range .People}}{{range .Persons}}
       <tr data-row>
         <td><a href="/persons/{{.Person.ID}}">{{personName .Person}}</a></td>
-        <td>{{.Relationship.Type}}</td>
+        <td>{{relDisplay .Relationship.Type .Direction}}</td>
         <td>{{strOrEmpty .Relationship.DateFrom}}{{if .Relationship.DateTo}} – {{strOrEmpty .Relationship.DateTo}}{{end}}</td>
         <td>{{strOrEmpty .Relationship.Note}}</td>
         <td>
@@ -75,6 +75,7 @@
             <option value="spouseOf">Spouse</option>
             <option value="siblingOf">Sibling</option>
             <option value="parentOf">Parent Of</option>
+            <option value="childOf">Child Of</option>
           </select>
         </label>
         <label>

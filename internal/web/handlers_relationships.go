@@ -34,11 +34,21 @@ func (s *Server) handleRelationshipsCreate(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	// "childOf" is the inbound direction of "parentOf":
+	// current person is the child (entity_b), selected person is the parent (entity_a).
+	entityAID, entityBID := personID, personBID
+	direction := "outbound"
+	if relType == "childOf" {
+		relType = "parentOf"
+		entityAID, entityBID = personBID, personID
+		direction = "inbound"
+	}
+
 	var row RelationshipRowView
 	err := s.dal.WithTx(ctx, func(q *dal.Queries) error {
 		rel, err := q.CreateRelationship(ctx, dal.CreateRelationshipParams{
-			EntityAID: personID,
-			EntityBID: personBID,
+			EntityAID: entityAID,
+			EntityBID: entityBID,
 			Type:      relType,
 			DateFrom:  nilOrStr(dateFrom),
 			DateTo:    nilOrStr(dateTo),
@@ -56,7 +66,7 @@ func (s *Server) handleRelationshipsCreate(w http.ResponseWriter, r *http.Reques
 			PersonWithRel: PersonWithRel{
 				Person:       otherPerson,
 				Relationship: rel,
-				Direction:    "outbound",
+				Direction:    direction,
 			},
 		}
 		return nil

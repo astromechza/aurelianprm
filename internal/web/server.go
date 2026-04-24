@@ -34,6 +34,12 @@ func NewServer(d *dal.DAL) (*Server, error) {
 			return data.Name
 		},
 		"strOrEmpty": strOrEmpty,
+		"relDisplay": func(relType, direction string) string {
+			if relType == "parentOf" && direction == "inbound" {
+				return "Child Of"
+			}
+			return labelForRelType(relType)
+		},
 		"entityFormCreate": func(personID, entityType string) EntityFormView {
 			return EntityFormView{
 				PersonID: personID,
