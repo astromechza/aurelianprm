@@ -27,12 +27,14 @@
 {{template "entity-section" .}}
 {{end}}
 
-{{range .People}}
-<article id="rel-section-{{.RelType}}">
-  <header><h3>{{.Label}}</h3></header>
+<article id="rel-section-people">
+  <header><h3>People</h3></header>
   <table>
-    <tbody id="rel-list-{{.RelType}}">
-      {{range .Persons}}
+    <thead>
+      <tr><th>Name</th><th>Relation</th><th>Dates</th><th>Note</th><th></th></tr>
+    </thead>
+    <tbody id="rel-list">
+      {{range .People}}{{range .Persons}}
       <tr data-row>
         <td><a href="/persons/{{.Person.ID}}">{{personName .Person}}</a></td>
         <td>{{.Relationship.Type}}</td>
@@ -54,29 +56,40 @@
           >Delete</button>
         </td>
       </tr>
-      {{end}}
+      {{end}}{{end}}
     </tbody>
   </table>
   <details>
-    <summary>+ Link person ({{.RelType}})</summary>
+    <summary>+ Link person</summary>
     <form
-      hx-post="/persons/{{.PersonID}}/relationships"
-      hx-target="#rel-list-{{.RelType}}"
+      hx-post="/persons/{{.Person.ID}}/relationships"
+      hx-target="#rel-list"
       hx-swap="beforeend"
     >
-      <input type="hidden" name="rel_type" value="{{.RelType}}">
-      <label>
-        Search person
-        <input type="search"
-          placeholder="Type name…"
-          hx-get="/persons?link_rel={{.RelType}}"
-          hx-trigger="keyup changed delay:300ms"
-          hx-target="#person-search-results-{{.RelType}}"
-        >
-      </label>
-      <div id="person-search-results-{{.RelType}}"></div>
-      <input type="hidden" name="person_b_id" id="person-b-id-{{.RelType}}">
-      <p id="selected-person-{{.RelType}}"><em>No person selected</em></p>
+      <div class="grid">
+        <label>
+          Relation type
+          <select name="rel_type">
+            <option value="knows">Knows</option>
+            <option value="friendOf">Friend</option>
+            <option value="spouseOf">Spouse</option>
+            <option value="siblingOf">Sibling</option>
+            <option value="parentOf">Parent Of</option>
+          </select>
+        </label>
+        <label>
+          Search person
+          <input type="search"
+            placeholder="Type name…"
+            hx-get="/persons?link_rel=link"
+            hx-trigger="keyup changed delay:300ms"
+            hx-target="#person-search-results-people"
+          >
+        </label>
+      </div>
+      <div id="person-search-results-people"></div>
+      <input type="hidden" name="person_b_id" id="person-b-id-link">
+      <p id="selected-person-link"><em>No person selected.</em></p>
       <div class="grid">
         <label>Date From <input type="text" name="date_from" placeholder="YYYY or YYYY-MM or YYYY-MM-DD"></label>
         <label>Date To <input type="text" name="date_to" placeholder="YYYY or YYYY-MM or YYYY-MM-DD"></label>
@@ -86,7 +99,6 @@
     </form>
   </details>
 </article>
-{{end}}
 
 <p style="margin-top:2rem;"><a href="/persons">← Back to People</a></p>
 

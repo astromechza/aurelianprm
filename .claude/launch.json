@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "aurelianprm web server",
+      "runtimeExecutable": "go",
+      "runtimeArgs": ["run", ".", "--db", "aurelianprm.db"],
+      "port": 8080,
+      "autoPort": true
+    }
+  ]
+}

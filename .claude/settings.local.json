@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(go version *)",
+      "Bash(golangci-lint version *)",
+      "Bash(go mod *)",
+      "Bash(gofmt -l .)",
+      "Bash(go test *)",
+      "Bash(golangci-lint run *)",
+      "Bash(make verify *)",
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git -C /Users/ben/projects/github.com/astromechza/aurelianprm2 rev-parse HEAD)",
+      "Bash(go get *)",
+      "Bash(git commit *)",
+      "Bash(git -C /Users/ben/projects/github.com/astromechza/aurelianprm2 log -1 --format=\"%H %s\")",
+      "Bash(git -C /Users/ben/projects/github.com/astromechza/aurelianprm2 log --oneline -3)",
+      "Bash(gofmt -l -w .)",
+      "Bash(go doc *)",
+      "Bash(go run *)",
+      "Bash(go build *)"
+    ]
+  }
+}

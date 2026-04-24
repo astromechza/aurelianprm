@@ -21,8 +21,17 @@ func main() {
 
 func run() error {
 	dbPath := flag.String("db", "aurelianprm.db", "path to SQLite database file")
-	addr := flag.String("addr", ":8080", "HTTP listen address")
+	addr := flag.String("addr", "", "HTTP listen address (overrides PORT env var)")
 	flag.Parse()
+
+	listenAddr := *addr
+	if listenAddr == "" {
+		port := os.Getenv("PORT")
+		if port == "" {
+			port = "8080"
+		}
+		listenAddr = ":" + port
+	}
 
 	sqlDB, err := db.Open(*dbPath)
 	if err != nil {
@@ -35,6 +44,6 @@ func run() error {
 		return fmt.Errorf("create server: %w", err)
 	}
 
-	fmt.Fprintf(os.Stderr, "listening on %s\n", *addr)
-	return http.ListenAndServe(*addr, srv.Handler())
+	fmt.Fprintf(os.Stderr, "listening on %s\n", listenAddr)
+	return http.ListenAndServe(listenAddr, srv.Handler())
 }
