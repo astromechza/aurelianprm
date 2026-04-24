@@ -65,7 +65,7 @@
       hx-post="/persons/{{.Person.ID}}/relationships"
       hx-target="#rel-list"
       hx-swap="beforeend"
-      hx-on:htmx:after-request="if(event.detail.successful){this.reset();document.getElementById('person-search-results-people').innerHTML='';document.getElementById('selected-person-link').innerHTML='<em>No person selected.</em>';}"
+      hx-on:htmx:after-request="if(event.detail.successful && event.detail.elt===this){this.reset();document.getElementById('person-search-results-people').innerHTML='';document.getElementById('selected-person-link').innerHTML='<em>No person selected.</em>';}"
     >
       <div class="grid">
         <label>
