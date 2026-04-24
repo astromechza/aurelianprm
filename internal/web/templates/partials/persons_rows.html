@@ -1,7 +1,7 @@
 {{define "persons-rows"}}
 {{range .Persons}}
-<tr onclick="window.location='/persons/{{.ID}}'" style="cursor:pointer;" {{if .BirthdaySoon}}data-birthday-soon{{end}}>
-  <td>{{.Name}}{{if .BirthdaySoon}} 🎂{{end}}</td>
+<tr onclick="window.location='/persons/{{.ID}}'" style="cursor:pointer;">
+  <td>{{.Name}}</td>
   <td>{{.NickName}}</td>
   <td>
     {{if .BirthYear}}{{.BirthYear}} / {{if .BirthMonth}}{{printf "%02d" .BirthMonth}}{{else}}<em>unknown</em>{{end}}

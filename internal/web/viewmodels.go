@@ -19,9 +19,10 @@ type PersonListItem struct {
 
 // PersonListView is the view model for the persons list page.
 type PersonListView struct {
-	Query   string
-	LinkRel string // non-empty when rendering for person-linking (returns link-persons-rows partial)
-	Persons []PersonListItem
+	Query             string
+	LinkRel           string // non-empty when rendering for person-linking (returns link-persons-rows partial)
+	Persons           []PersonListItem
+	UpcomingBirthdays []PersonListItem // always full-list birthday-soon, independent of search
 }
 
 // PersonData holds decoded JSON fields of a Person entity.

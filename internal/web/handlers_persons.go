@@ -17,11 +17,15 @@ func (s *Server) handlePersonsList(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	q := r.URL.Query().Get("q")
 
-	var persons []dal.Entity
+	var persons, allPersons []dal.Entity
 	err := s.dal.WithTx(ctx, func(queries *dal.Queries) error {
 		var e error
+		allPersons, e = queries.ListEntitiesByType(ctx, "Person")
+		if e != nil {
+			return e
+		}
 		if q == "" {
-			persons, e = queries.ListEntitiesByType(ctx, "Person")
+			persons = allPersons
 		} else {
 			all, searchErr := queries.SearchEntities(ctx, q)
 			if searchErr != nil {
@@ -33,7 +37,7 @@ func (s *Server) handlePersonsList(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
-		return e
+		return nil
 	})
 	if err != nil {
 		s.serverError(w, r, err)
@@ -41,8 +45,7 @@ func (s *Server) handlePersonsList(w http.ResponseWriter, r *http.Request) {
 	}
 
 	now := time.Now()
-	items := make([]PersonListItem, 0, len(persons))
-	for _, e := range persons {
+	toListItem := func(e dal.Entity) PersonListItem {
 		pd := decodePersonData(e.Data)
 		birthdaySoon := false
 		if pd.BirthMonth > 0 && pd.BirthDay > 0 {
@@ -55,7 +58,7 @@ func (s *Server) handlePersonsList(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
-		items = append(items, PersonListItem{
+		return PersonListItem{
 			ID:           e.ID,
 			Name:         pd.Name,
 			NickName:     pd.NickName,
@@ -63,10 +66,24 @@ func (s *Server) handlePersonsList(w http.ResponseWriter, r *http.Request) {
 			BirthMonth:   pd.BirthMonth,
 			BirthDay:     pd.BirthDay,
 			BirthdaySoon: birthdaySoon,
-		})
+		}
 	}
+
+	items := make([]PersonListItem, 0, len(persons))
+	for _, e := range persons {
+		items = append(items, toListItem(e))
+	}
+
+	var upcoming []PersonListItem
+	for _, e := range allPersons {
+		item := toListItem(e)
+		if item.BirthdaySoon {
+			upcoming = append(upcoming, item)
+		}
+	}
+
 	linkRel := r.URL.Query().Get("link_rel")
-	view := PersonListView{Query: q, LinkRel: linkRel, Persons: items}
+	view := PersonListView{Query: q, LinkRel: linkRel, Persons: items, UpcomingBirthdays: upcoming}
 
 	if isHTMX(r) {
 		if linkRel != "" {
