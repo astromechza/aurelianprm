@@ -1,7 +1,7 @@
 {{define "relationship-row"}}
 <tr data-row>
   <td><a href="/persons/{{.PersonWithRel.Person.ID}}">{{personName .PersonWithRel.Person}}</a></td>
-  <td>{{.PersonWithRel.Relationship.Type}}</td>
+  <td>{{relDisplay .PersonWithRel.Relationship.Type .PersonWithRel.Direction}}</td>
   <td>
     {{strOrEmpty .PersonWithRel.Relationship.DateFrom}}
     {{if and .PersonWithRel.Relationship.DateFrom .PersonWithRel.Relationship.DateTo}} – {{end}}
