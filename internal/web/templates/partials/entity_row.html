@@ -11,6 +11,7 @@
     {{else if eq $type "Career"}}{{index $dm "role"}} @ {{index $dm "organization"}}{{if index $dm "label"}} <small>({{index $dm "label"}})</small>{{end}}
     {{else if eq $type "Pet"}}{{index $dm "name"}}{{if index $dm "species"}} ({{index $dm "species"}}){{end}}
     {{else}}{{$type}}{{end}}
+    {{if .Relationship.DateFrom}}<br><small>{{strOrEmpty .Relationship.DateFrom}}{{if .Relationship.DateTo}} – {{strOrEmpty .Relationship.DateTo}}{{end}}</small>{{end}}
   </td>
   <td>
     <button

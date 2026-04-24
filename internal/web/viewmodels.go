@@ -74,9 +74,11 @@ type PersonDetailView struct {
 type EntityFormView struct {
 	PersonID string // for create mode (form action)
 	EntityID string // for edit mode
-	RelID    string // for edit mode (unused in form but available)
+	RelID    string // for edit mode
 	Type     string // entity type e.g. "EmailAddress"
 	DataMap  map[string]any
+	DateFrom string // relationship date_from
+	DateTo   string // relationship date_to
 	EditMode bool
 	Error    string
 }

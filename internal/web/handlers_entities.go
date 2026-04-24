@@ -31,6 +31,9 @@ func (s *Server) handleEntitiesCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	dateFrom := r.FormValue("date_from")
+	dateTo := r.FormValue("date_to")
+
 	var section EntitySection
 	err = s.dal.WithTx(ctx, func(q *dal.Queries) error {
 		entity, err := q.CreateEntity(ctx, dal.CreateEntityParams{
@@ -44,6 +47,8 @@ func (s *Server) handleEntitiesCreate(w http.ResponseWriter, r *http.Request) {
 			EntityAID: personID,
 			EntityBID: entity.ID,
 			Type:      relType,
+			DateFrom:  nilOrStr(dateFrom),
+			DateTo:    nilOrStr(dateTo),
 		}); err != nil {
 			return err
 		}
@@ -94,11 +99,21 @@ func (s *Server) handleEntitiesEditForm(w http.ResponseWriter, r *http.Request) 
 				break
 			}
 		}
+		var dateFrom, dateTo string
+		for _, nr := range neighbours {
+			if nr.Entity.Type == "Person" {
+				dateFrom = strOrEmpty(nr.Relationship.DateFrom)
+				dateTo = strOrEmpty(nr.Relationship.DateTo)
+				break
+			}
+		}
 		view = EntityFormView{
 			EntityID: eid,
 			RelID:    relID,
 			Type:     entity.Type,
 			DataMap:  decodeDataMap(entity.Data),
+			DateFrom: dateFrom,
+			DateTo:   dateTo,
 			EditMode: true,
 		}
 		return nil
@@ -160,6 +175,9 @@ func (s *Server) handleEntitiesUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	dateFrom := r.FormValue("date_from")
+	dateTo := r.FormValue("date_to")
+
 	var view EntityWithRel
 	err := s.dal.WithTx(ctx, func(q *dal.Queries) error {
 		entity, err := q.GetEntity(ctx, eid)
@@ -187,6 +205,18 @@ func (s *Server) handleEntitiesUpdate(w http.ResponseWriter, r *http.Request) {
 				rel = nr.Relationship
 				break
 			}
+		}
+		if rel.ID != "" {
+			if err := q.UpdateRelationship(ctx, dal.UpdateRelationshipParams{
+				ID:       rel.ID,
+				DateFrom: nilOrStr(dateFrom),
+				DateTo:   nilOrStr(dateTo),
+				Note:     rel.Note,
+			}); err != nil {
+				return err
+			}
+			rel.DateFrom = nilOrStr(dateFrom)
+			rel.DateTo = nilOrStr(dateTo)
 		}
 		view = EntityWithRel{
 			Entity:       entity,
