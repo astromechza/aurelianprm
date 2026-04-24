@@ -515,3 +515,10 @@ func TestAPIDeleteRelationship_NotFound(t *testing.T) {
 	w := doAPIJSON(t, s, http.MethodDelete, "/api/relationships/NOTEXIST", nil)
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }
+
+func TestAPIUpdateRelationship_NotFound(t *testing.T) {
+	s := newTestServer(t)
+	update := map[string]any{"date_from": "2020", "note": "updated"}
+	w := doAPIJSON(t, s, http.MethodPut, "/api/relationships/NOTEXIST", update)
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}

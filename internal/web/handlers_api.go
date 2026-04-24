@@ -263,6 +263,9 @@ func (s *Server) handleAPIUpdateRelationship(w http.ResponseWriter, r *http.Requ
 	}
 	var rel dal.Relationship
 	err := s.dal.WithTx(ctx, func(q *dal.Queries) error {
+		if _, err := q.GetRelationship(ctx, id); err != nil {
+			return err
+		}
 		if err := q.UpdateRelationship(ctx, dal.UpdateRelationshipParams{
 			ID:       id,
 			DateFrom: req.DateFrom,
