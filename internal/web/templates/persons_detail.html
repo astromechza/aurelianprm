@@ -82,7 +82,8 @@
           <input type="search"
             placeholder="Type name…"
             hx-get="/persons?link_rel=link"
-            hx-trigger="keyup changed delay:300ms"
+            hx-trigger="input delay:300ms"
+            hx-swap="innerHTML"
             hx-target="#person-search-results-people"
           >
         </label>
