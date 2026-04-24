@@ -403,3 +403,9 @@ func TestAPIDeleteEntity(t *testing.T) {
 	w2 := doAPIJSON(t, s, http.MethodGet, "/api/entities/"+id, nil)
 	assert.Equal(t, http.StatusNotFound, w2.Code)
 }
+
+func TestAPIDeleteEntity_NotFound(t *testing.T) {
+	s := newTestServer(t)
+	w := doAPIJSON(t, s, http.MethodDelete, "/api/entities/NOTEXIST", nil)
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}

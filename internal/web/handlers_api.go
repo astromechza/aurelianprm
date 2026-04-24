@@ -169,9 +169,16 @@ func (s *Server) handleAPIDeleteEntity(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	id := chi.URLParam(r, "id")
 	err := s.dal.WithTx(ctx, func(q *dal.Queries) error {
+		if _, err := q.GetEntity(ctx, id); err != nil {
+			return err
+		}
 		return q.DeleteEntity(ctx, id)
 	})
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			apiError(w, http.StatusNotFound, "entity not found")
+			return
+		}
 		apiError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
