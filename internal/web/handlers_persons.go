@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
@@ -39,15 +40,29 @@ func (s *Server) handlePersonsList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	now := time.Now()
 	items := make([]PersonListItem, 0, len(persons))
 	for _, e := range persons {
 		pd := decodePersonData(e.Data)
+		birthdaySoon := false
+		if pd.BirthMonth > 0 && pd.BirthDay > 0 {
+			for _, y := range []int{now.Year() - 1, now.Year(), now.Year() + 1} {
+				bday := time.Date(y, time.Month(pd.BirthMonth), pd.BirthDay, 0, 0, 0, 0, now.Location())
+				diff := bday.Sub(now).Hours() / 24
+				if diff >= -7 && diff <= 7 {
+					birthdaySoon = true
+					break
+				}
+			}
+		}
 		items = append(items, PersonListItem{
-			ID:         e.ID,
-			Name:       pd.Name,
-			NickName:   pd.NickName,
-			BirthYear:  pd.BirthYear,
-			BirthMonth: pd.BirthMonth,
+			ID:           e.ID,
+			Name:         pd.Name,
+			NickName:     pd.NickName,
+			BirthYear:    pd.BirthYear,
+			BirthMonth:   pd.BirthMonth,
+			BirthDay:     pd.BirthDay,
+			BirthdaySoon: birthdaySoon,
 		})
 	}
 	linkRel := r.URL.Query().Get("link_rel")

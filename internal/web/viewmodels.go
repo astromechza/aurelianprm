@@ -8,11 +8,13 @@ import (
 
 // PersonListItem is a decoded row for the persons list/search page.
 type PersonListItem struct {
-	ID         string
-	Name       string
-	NickName   string
-	BirthYear  int
-	BirthMonth int
+	ID           string
+	Name         string
+	NickName     string
+	BirthYear    int
+	BirthMonth   int
+	BirthDay     int
+	BirthdaySoon bool // birthday within ±7 days of today
 }
 
 // PersonListView is the view model for the persons list page.
