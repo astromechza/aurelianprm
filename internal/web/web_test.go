@@ -1,7 +1,9 @@
 package web_test
 
 import (
+	"bytes"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -55,6 +57,21 @@ func doMethod(t *testing.T, s *web.Server, method, path, body string) *httptest.
 	t.Helper()
 	req := httptest.NewRequest(method, path, strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w := httptest.NewRecorder()
+	s.Handler().ServeHTTP(w, req)
+	return w
+}
+
+func doAPIJSON(t *testing.T, s *web.Server, method, path string, body any) *httptest.ResponseRecorder {
+	t.Helper()
+	var b []byte
+	if body != nil {
+		var err error
+		b, err = json.Marshal(body)
+		require.NoError(t, err)
+	}
+	req := httptest.NewRequest(method, path, bytes.NewReader(b))
+	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	s.Handler().ServeHTTP(w, req)
 	return w
@@ -283,4 +300,96 @@ func TestEntitiesDelete_Returns200(t *testing.T) {
 
 	w2 := doMethod(t, s, http.MethodDelete, "/entities/"+eid, "")
 	assert.Equal(t, http.StatusOK, w2.Code)
+}
+
+func TestAPISearchEntities(t *testing.T) {
+	sqlDB, err := db.Open(":memory:")
+	require.NoError(t, err)
+	t.Cleanup(func() { sqlDB.Close() })
+	createTestPerson(t, sqlDB, "Alice API")
+	s, err := web.NewServer(dal.New(sqlDB))
+	require.NoError(t, err)
+
+	w := doAPIJSON(t, s, http.MethodPost, "/api/search-entities", map[string]string{"q": "Alice", "type": "Person"})
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "application/json", w.Header().Get("Content-Type"))
+	var resp struct {
+		Results []map[string]any `json:"results"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.Len(t, resp.Results, 1)
+	assert.Equal(t, "Alice API", resp.Results[0]["display_name"])
+}
+
+func TestAPIGetEntity_Found(t *testing.T) {
+	sqlDB, err := db.Open(":memory:")
+	require.NoError(t, err)
+	t.Cleanup(func() { sqlDB.Close() })
+	id := createTestPerson(t, sqlDB, "Bob API")
+	s, err := web.NewServer(dal.New(sqlDB))
+	require.NoError(t, err)
+
+	w := doAPIJSON(t, s, http.MethodGet, "/api/entities/"+id, nil)
+	assert.Equal(t, http.StatusOK, w.Code)
+	var entity map[string]any
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &entity))
+	assert.Equal(t, id, entity["id"])
+	assert.Equal(t, "Person", entity["type"])
+}
+
+func TestAPIGetEntity_NotFound(t *testing.T) {
+	s := newTestServer(t)
+	w := doAPIJSON(t, s, http.MethodGet, "/api/entities/NOTEXIST", nil)
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestAPICreateEntity(t *testing.T) {
+	s := newTestServer(t)
+	body := map[string]any{
+		"type":         "Person",
+		"display_name": "Carol API",
+		"data":         map[string]any{"name": "Carol API"},
+	}
+	w := doAPIJSON(t, s, http.MethodPost, "/api/entities", body)
+	assert.Equal(t, http.StatusCreated, w.Code)
+	var entity map[string]any
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &entity))
+	assert.Equal(t, "Person", entity["type"])
+	assert.Equal(t, "Carol API", entity["display_name"])
+	assert.NotEmpty(t, entity["id"])
+}
+
+func TestAPIUpdateEntity(t *testing.T) {
+	sqlDB, err := db.Open(":memory:")
+	require.NoError(t, err)
+	t.Cleanup(func() { sqlDB.Close() })
+	id := createTestPerson(t, sqlDB, "Dave API")
+	s, err := web.NewServer(dal.New(sqlDB))
+	require.NoError(t, err)
+
+	body := map[string]any{
+		"display_name": "Dave API Updated",
+		"data":         map[string]any{"name": "Dave API Updated"},
+	}
+	w := doAPIJSON(t, s, http.MethodPut, "/api/entities/"+id, body)
+	assert.Equal(t, http.StatusOK, w.Code)
+	var entity map[string]any
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &entity))
+	assert.Equal(t, "Dave API Updated", entity["display_name"])
+}
+
+func TestAPIDeleteEntity(t *testing.T) {
+	sqlDB, err := db.Open(":memory:")
+	require.NoError(t, err)
+	t.Cleanup(func() { sqlDB.Close() })
+	id := createTestPerson(t, sqlDB, "Eve API")
+	s, err := web.NewServer(dal.New(sqlDB))
+	require.NoError(t, err)
+
+	w := doAPIJSON(t, s, http.MethodDelete, "/api/entities/"+id, nil)
+	assert.Equal(t, http.StatusNoContent, w.Code)
+
+	// Confirm gone
+	w2 := doAPIJSON(t, s, http.MethodGet, "/api/entities/"+id, nil)
+	assert.Equal(t, http.StatusNotFound, w2.Code)
 }
