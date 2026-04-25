@@ -2,7 +2,9 @@ package web_test
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -537,6 +539,14 @@ func TestBackup_ReturnsDatabase(t *testing.T) {
 	assert.Contains(t, w.Header().Get("Content-Disposition"), "attachment")
 	assert.Contains(t, w.Header().Get("Content-Disposition"), ".db")
 	assert.NotEmpty(t, w.Header().Get("Content-Length"), "Content-Length should be set")
+	// Digest header (RFC 9530) must be present and match the body.
+	digest := w.Header().Get("Digest")
+	assert.True(t, strings.HasPrefix(digest, "sha-256=:"), "Digest header should use sha-256 format")
+	b64part := strings.TrimPrefix(strings.TrimSuffix(digest, ":"), "sha-256=:")
+	decoded, decErr := base64.StdEncoding.DecodeString(b64part)
+	require.NoError(t, decErr, "Digest base64 should be valid")
+	expected := sha256.Sum256(w.Body.Bytes())
+	assert.Equal(t, expected[:], decoded, "Digest should match body SHA-256")
 	// A valid SQLite file starts with the magic header string.
 	assert.True(t, w.Body.Len() > 0, "backup response should not be empty")
 	assert.Contains(t, w.Body.String(), "SQLite format 3", "backup should start with SQLite magic header")

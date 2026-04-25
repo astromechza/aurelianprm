@@ -203,9 +203,17 @@ GET /api/backup
 
 Returns a complete, transactionally-consistent snapshot of the database as a downloadable `.db` file. The snapshot is created using `VACUUM INTO`, which is safe while the server is running and works with WAL mode. The temporary file is written alongside the database in `/data` (not in `/tmp`), so the container root filesystem can remain read-only.
 
+The response includes a `Digest` header (RFC 9530) with the SHA-256 checksum of the body, so you can verify that the transfer was not corrupted:
+
 ```sh
-# Download a backup from a running instance
-curl -o backup-$(date +%Y%m%d).db http://localhost:8080/api/backup
+# Download and verify integrity
+FILE=backup-$(date +%Y%m%d).db
+curl -D headers.txt -o "$FILE" http://localhost:8080/api/backup
+
+# Extract the expected hash from the Digest header (sha-256=:<base64>:)
+EXPECTED=$(grep -i '^Digest:' headers.txt | sed 's/.*sha-256=://;s/:.*//' | tr -d '\r' | base64 -d | xxd -p -c 256)
+ACTUAL=$(sha256sum "$FILE" | awk '{print $1}')
+[ "$EXPECTED" = "$ACTUAL" ] && echo "OK: integrity verified" || echo "FAIL: checksum mismatch"
 ```
 
 ### Docker: scheduled backup with cron
