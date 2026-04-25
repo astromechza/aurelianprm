@@ -53,7 +53,7 @@
 {{else if eq $type "PostalAddress"}}
 <div class="grid">
   <label>Label <input type="text" name="label" value="{{index $dm "label"}}" placeholder="home, work…"></label>
-  <label>Country (ISO 2) <input type="text" name="country" value="{{index $dm "country"}}" maxlength="2" placeholder="US"></label>
+  <label>Country <input type="text" name="country" value="{{index $dm "country"}}" maxlength="2" placeholder="US" list="country-list">{{template "country-datalist" .}}</label>
 </div>
 <div class="grid">
   <label>City <input type="text" name="city" value="{{index $dm "city"}}"></label>
