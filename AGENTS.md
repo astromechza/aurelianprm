@@ -1,15 +1,17 @@
 # aurelianprm — Agent Instructions
 
-## Verification
+## Verification — MANDATORY
 
-Run `make verify` before claiming any task complete. It runs:
+**MUST run `make verify` before every commit. No exceptions.**
+
+`make verify` runs the exact same checks as CI:
 
 1. `gofmt -l -w .` — format all Go files
 2. `go mod tidy` — keep go.mod/go.sum clean
 3. `go test -race ./...` — all tests with race detector
-4. `golangci-lint run ./...` — lint with project config
+4. `golangci-lint run ./...` — lint with project config (`.golangci.yml`)
 
-All four must pass. Fix failures before finishing.
+All four must pass with zero errors before `git commit`. Fix all failures first. A commit that skips `make verify` will break CI — do not do it.
 
 ## Development Rules
 
