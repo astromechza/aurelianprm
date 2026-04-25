@@ -95,6 +95,7 @@ func (s *Server) Handler() http.Handler {
 	r.Delete("/relationships/{rid}", s.handleRelationshipsDelete)
 
 	r.Route("/api", func(r chi.Router) {
+		r.Get("/backup", s.handleAPIBackup)
 		r.Post("/search-entities", s.handleAPISearchEntities)
 		r.Get("/entities/{id}", s.handleAPIGetEntity)
 		r.Post("/entities", s.handleAPICreateEntity)

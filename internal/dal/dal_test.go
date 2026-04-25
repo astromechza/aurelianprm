@@ -17,7 +17,7 @@ func newTestDAL(t *testing.T) *dal.DAL {
 	conn, err := db.Open(":memory:")
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, conn.Close()) })
-	return dal.New(conn)
+	return dal.New(conn, ":memory:")
 }
 
 func TestWithTx_commit(t *testing.T) {

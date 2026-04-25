@@ -39,7 +39,7 @@ func run() error {
 	}
 	defer sqlDB.Close() //nolint:errcheck
 
-	srv, err := web.NewServer(dal.New(sqlDB))
+	srv, err := web.NewServer(dal.New(sqlDB, *dbPath))
 	if err != nil {
 		return fmt.Errorf("create server: %w", err)
 	}

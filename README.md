@@ -122,6 +122,8 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /data
+          securityContext:
+            readOnlyRootFilesystem: true   # root FS is read-only; only /data is writable
           resources:
             requests:
               cpu: 50m
@@ -191,7 +193,85 @@ Add TLS via cert-manager or your ingress controller of choice. The app itself ha
 
 ## Backups
 
-The database is a single file. Back it up with any file-level tool. For a consistent snapshot while running:
+The database is a single SQLite file. The container image does not include shell utilities or `sqlite3`, so **the recommended approach is the built-in HTTP backup endpoint**.
+
+### HTTP backup endpoint
+
+```
+GET /api/backup
+```
+
+Returns a complete, transactionally-consistent snapshot of the database as a downloadable `.db` file. The snapshot is created using `VACUUM INTO`, which is safe while the server is running and works with WAL mode. The temporary file is written alongside the database in `/data` (not in `/tmp`), so the container root filesystem can remain read-only.
+
+The response includes a `Digest` header (RFC 9530) with the SHA-256 checksum of the body, so you can verify that the transfer was not corrupted:
+
+```sh
+# Download with response headers saved separately
+curl -D headers.txt -o backup.db http://localhost:8080/api/backup
+
+# Compare the server's SHA-256 with the local file
+# The Digest header value is base64-encoded: sha-256=:<base64>:
+grep -i '^Digest:' headers.txt
+sha256sum backup.db
+```
+
+### Docker: scheduled backup with cron
+
+Run a cron job on the host (or a sidecar container) that downloads the backup and pushes it with rclone:
+
+```sh
+# crontab entry: daily at 02:00
+0 2 * * * curl -sf http://localhost:8080/api/backup -o /tmp/aurelianprm-backup.db && \
+           rclone copyto /tmp/aurelianprm-backup.db remote:backups/aurelianprm/$(date +\%Y\%m\%d).db && \
+           rm /tmp/aurelianprm-backup.db
+```
+
+### Kubernetes: CronJob backup
+
+A CronJob that fetches the backup from the service and uploads it with rclone:
+
+```yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: aurelianprm-backup
+spec:
+  schedule: "0 2 * * *"    # daily at 02:00 UTC
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: backup
+              image: rclone/rclone:latest
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -e
+                  DATE=$(date +%Y%m%d)
+                  wget -q -O /tmp/backup.db http://aurelianprm/api/backup
+                  rclone copyto /tmp/backup.db "${RCLONE_DEST}/aurelianprm-${DATE}.db"
+              env:
+                - name: RCLONE_DEST
+                  value: "remote:backups"   # adjust to your rclone remote and path
+              volumeMounts:
+                - name: rclone-config
+                  mountPath: /config/rclone
+                  readOnly: true
+          volumes:
+            - name: rclone-config
+              secret:
+                secretName: rclone-config   # kubectl create secret generic rclone-config --from-file=rclone.conf
+```
+
+The CronJob accesses the database through the Kubernetes Service rather than mounting the PVC, so there is no ReadWriteOnce conflict.
+
+### Direct file backup (requires volume access)
+
+If you have shell access to a node or container that can mount the same volume, you can use `sqlite3` directly for a consistent snapshot:
 
 ```sh
 sqlite3 /data/aurelianprm.db ".backup /backup/aurelianprm-$(date +%Y%m%d).db"
@@ -202,3 +282,4 @@ Or use `VACUUM INTO` for a compacted copy:
 ```sh
 sqlite3 /data/aurelianprm.db "VACUUM INTO '/backup/aurelianprm-$(date +%Y%m%d).db'"
 ```
+
