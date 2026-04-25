@@ -2,6 +2,7 @@ package web
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"net/http"
 
@@ -65,6 +66,77 @@ func (s *Server) handleRelationshipsCreate(w http.ResponseWriter, r *http.Reques
 			PersonID: personID,
 			PersonWithRel: PersonWithRel{
 				Person:       otherPerson,
+				Relationship: rel,
+				Direction:    direction,
+			},
+		}
+		return nil
+	})
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	s.render(w, "relationship-row", row)
+}
+
+func (s *Server) handleRelationshipsCreateAndLink(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	personID := chi.URLParam(r, "id")
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+
+	name := r.FormValue("name")
+	relType := r.FormValue("rel_type")
+	dateFrom := r.FormValue("date_from")
+	dateTo := r.FormValue("date_to")
+	note := r.FormValue("note")
+
+	if name == "" || relType == "" {
+		http.Error(w, "name and relation type are required", http.StatusBadRequest)
+		return
+	}
+
+	entityAID, direction := personID, "outbound"
+	if relType == "childOf" {
+		relType = "parentOf"
+		direction = "inbound"
+	}
+
+	var row RelationshipRowView
+	err := s.dal.WithTx(ctx, func(q *dal.Queries) error {
+		personData, _ := json.Marshal(map[string]any{"name": name})
+		newPerson, err := q.CreateEntity(ctx, dal.CreateEntityParams{
+			Type:        "Person",
+			DisplayName: &name,
+			Data:        personData,
+		})
+		if err != nil {
+			return err
+		}
+
+		newPersonID := newPerson.ID
+		relEntityAID, relEntityBID := entityAID, newPersonID
+		if direction == "inbound" {
+			relEntityAID, relEntityBID = newPersonID, personID
+		}
+
+		rel, err := q.CreateRelationship(ctx, dal.CreateRelationshipParams{
+			EntityAID: relEntityAID,
+			EntityBID: relEntityBID,
+			Type:      relType,
+			DateFrom:  nilOrStr(dateFrom),
+			DateTo:    nilOrStr(dateTo),
+			Note:      nilOrStr(note),
+		})
+		if err != nil {
+			return err
+		}
+		row = RelationshipRowView{
+			PersonID: personID,
+			PersonWithRel: PersonWithRel{
+				Person:       newPerson,
 				Relationship: rel,
 				Direction:    direction,
 			},

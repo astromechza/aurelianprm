@@ -58,7 +58,7 @@
     </tbody>
   </table>
   <details>
-    <summary>+ Link person</summary>
+    <summary>+ Link existing person</summary>
     <form
       hx-post="/persons/{{.Person.ID}}/relationships"
       hx-target="#rel-list"
@@ -98,6 +98,36 @@
         <label>Note <input type="text" name="note"></label>
       </div>
       <button type="submit">Link Person</button>
+    </form>
+  </details>
+  <details>
+    <summary>+ Create &amp; link new person</summary>
+    <form
+      hx-post="/persons/{{.Person.ID}}/relationships/new-person"
+      hx-target="#rel-list"
+      hx-swap="beforeend"
+      hx-on:htmx:after-request="if(event.detail.successful && event.detail.elt===this){this.reset();this.closest('details').removeAttribute('open');}"
+    >
+      <div class="grid">
+        <label>
+          Relation type
+          <select name="rel_type">
+            <option value="knows">Knows</option>
+            <option value="friendOf">Friend</option>
+            <option value="spouseOf">Spouse</option>
+            <option value="siblingOf">Sibling</option>
+            <option value="parentOf">Parent Of</option>
+            <option value="childOf">Child Of</option>
+          </select>
+        </label>
+        <label>Name * <input type="text" name="name" required placeholder="Full name"></label>
+      </div>
+      <div class="grid">
+        <label>Date From <input type="text" name="date_from" placeholder="YYYY or YYYY-MM or YYYY-MM-DD"></label>
+        <label>Date To <input type="text" name="date_to" placeholder="YYYY or YYYY-MM or YYYY-MM-DD"></label>
+        <label>Note <input type="text" name="note"></label>
+      </div>
+      <button type="submit">Create &amp; Link</button>
     </form>
   </details>
 </article>

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 )
 
@@ -104,6 +105,20 @@ func entityTypeForRelType(relType string) string {
 		}
 	}
 	return ""
+}
+
+// osmSearchURL builds an OpenStreetMap search URL from a PostalAddress data map.
+func osmSearchURL(dm map[string]any) string {
+	var parts []string
+	for _, key := range []string{"streetAddress", "city", "country"} {
+		if v, ok := dm[key].(string); ok && v != "" {
+			parts = append(parts, v)
+		}
+	}
+	if len(parts) == 0 {
+		return ""
+	}
+	return "https://www.openstreetmap.org/search?query=" + url.QueryEscape(strings.Join(parts, ", "))
 }
 
 // nilOrStr returns nil for empty string, otherwise a pointer to the string.

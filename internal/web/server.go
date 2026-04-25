@@ -36,6 +36,7 @@ func NewServer(d *dal.DAL) (*Server, error) {
 		"strOrEmpty":   strOrEmpty,
 		"fmtDate":      fmtDate,
 		"fmtBirthDate": fmtBirthDate,
+		"osmSearchURL": osmSearchURL,
 		"relDisplay": func(relType, direction string) string {
 			if relType == "parentOf" && direction == "inbound" {
 				return "Child Of"
@@ -87,6 +88,7 @@ func (s *Server) Handler() http.Handler {
 	r.Delete("/entities/{eid}", s.handleEntitiesDelete)
 
 	r.Post("/persons/{id}/relationships", s.handleRelationshipsCreate)
+	r.Post("/persons/{id}/relationships/new-person", s.handleRelationshipsCreateAndLink)
 	r.Get("/relationships/{rid}/edit", s.handleRelationshipsEditForm)
 	r.Get("/relationships/{rid}/cancel", s.handleRelationshipsCancel)
 	r.Put("/relationships/{rid}", s.handleRelationshipsUpdate)
