@@ -22,7 +22,7 @@ func newTestServer(t *testing.T) *web.Server {
 	sqlDB, err := db.Open(":memory:")
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = sqlDB.Close() })
-	s, err := web.NewServer(dal.New(sqlDB))
+	s, err := web.NewServer(dal.New(sqlDB, ":memory:"))
 	require.NoError(t, err)
 	return s
 }
@@ -81,7 +81,7 @@ func doAPIJSON(t *testing.T, s *web.Server, method, path string, body any) *http
 // DisplayName is set to name so the entity is indexed for FTS search.
 func createTestPerson(t *testing.T, sqlDB *sql.DB, name string) string {
 	t.Helper()
-	d := dal.New(sqlDB)
+	d := dal.New(sqlDB, ":memory:")
 	var id string
 	err := d.WithTx(t.Context(), func(q *dal.Queries) error {
 		e, err := q.CreateEntity(t.Context(), dal.CreateEntityParams{
@@ -119,7 +119,7 @@ func TestPersonsList_ShowsPersons(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = sqlDB.Close() })
 	createTestPerson(t, sqlDB, "Alice Example")
-	s, err := web.NewServer(dal.New(sqlDB))
+	s, err := web.NewServer(dal.New(sqlDB, ":memory:"))
 	require.NoError(t, err)
 
 	w := doGet(t, s, "/persons")
@@ -132,7 +132,7 @@ func TestPersonsSearch_ReturnsPartial(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = sqlDB.Close() })
 	createTestPerson(t, sqlDB, "Bob Builder")
-	s, err := web.NewServer(dal.New(sqlDB))
+	s, err := web.NewServer(dal.New(sqlDB, ":memory:"))
 	require.NoError(t, err)
 
 	w := doGetHX(t, s, "/persons?q=Bob")
@@ -179,7 +179,7 @@ func TestPersonsDetail_Returns200(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = sqlDB.Close() })
 	id := createTestPerson(t, sqlDB, "Carol Detail")
-	s, err := web.NewServer(dal.New(sqlDB))
+	s, err := web.NewServer(dal.New(sqlDB, ":memory:"))
 	require.NoError(t, err)
 
 	w := doGet(t, s, "/persons/"+id)
@@ -198,7 +198,7 @@ func TestPersonsUpdate_Redirects(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = sqlDB.Close() })
 	id := createTestPerson(t, sqlDB, "Dave Old")
-	s, err := web.NewServer(dal.New(sqlDB))
+	s, err := web.NewServer(dal.New(sqlDB, ":memory:"))
 	require.NoError(t, err)
 
 	w := doMethod(t, s, http.MethodPut, "/persons/"+id, "name=Dave+New")
@@ -210,7 +210,7 @@ func TestPersonsDelete_Redirects(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = sqlDB.Close() })
 	id := createTestPerson(t, sqlDB, "Eve Delete")
-	s, err := web.NewServer(dal.New(sqlDB))
+	s, err := web.NewServer(dal.New(sqlDB, ":memory:"))
 	require.NoError(t, err)
 
 	w := doMethod(t, s, http.MethodDelete, "/persons/"+id, "")
@@ -223,7 +223,7 @@ func TestEntitiesCreate_ReturnsPartial(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = sqlDB.Close() })
 	personID := createTestPerson(t, sqlDB, "Frank Entity")
-	s, err := web.NewServer(dal.New(sqlDB))
+	s, err := web.NewServer(dal.New(sqlDB, ":memory:"))
 	require.NoError(t, err)
 
 	body := "type=EmailAddress&email=frank%40example.com&label=work"
@@ -240,7 +240,7 @@ func TestRelationshipsCreate_ReturnsPartial(t *testing.T) {
 	t.Cleanup(func() { _ = sqlDB.Close() })
 	personAID := createTestPerson(t, sqlDB, "Alice Rel")
 	personBID := createTestPerson(t, sqlDB, "Bob Rel")
-	s, err := web.NewServer(dal.New(sqlDB))
+	s, err := web.NewServer(dal.New(sqlDB, ":memory:"))
 	require.NoError(t, err)
 
 	body := fmt.Sprintf("person_b_id=%s&rel_type=knows", personBID)
@@ -256,7 +256,7 @@ func TestRelationshipsDelete_Returns200(t *testing.T) {
 	t.Cleanup(func() { _ = sqlDB.Close() })
 	personAID := createTestPerson(t, sqlDB, "Carol Rel")
 	personBID := createTestPerson(t, sqlDB, "Dave Rel")
-	s, err := web.NewServer(dal.New(sqlDB))
+	s, err := web.NewServer(dal.New(sqlDB, ":memory:"))
 	require.NoError(t, err)
 
 	// Create relationship via handler
@@ -282,7 +282,7 @@ func TestEntitiesDelete_Returns200(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = sqlDB.Close() })
 	personID := createTestPerson(t, sqlDB, "Grace Delete")
-	s, err := web.NewServer(dal.New(sqlDB))
+	s, err := web.NewServer(dal.New(sqlDB, ":memory:"))
 	require.NoError(t, err)
 
 	// Create entity via handler to get its ID
@@ -307,7 +307,7 @@ func TestAPISearchEntities(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = sqlDB.Close() })
 	createTestPerson(t, sqlDB, "Alice API")
-	s, err := web.NewServer(dal.New(sqlDB))
+	s, err := web.NewServer(dal.New(sqlDB, ":memory:"))
 	require.NoError(t, err)
 
 	// Create a Pet entity to test type filter exclusion
@@ -335,7 +335,7 @@ func TestAPIGetEntity_Found(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = sqlDB.Close() })
 	id := createTestPerson(t, sqlDB, "Bob API")
-	s, err := web.NewServer(dal.New(sqlDB))
+	s, err := web.NewServer(dal.New(sqlDB, ":memory:"))
 	require.NoError(t, err)
 
 	w := doAPIJSON(t, s, http.MethodGet, "/api/entities/"+id, nil)
@@ -374,7 +374,7 @@ func TestAPIUpdateEntity(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = sqlDB.Close() })
 	id := createTestPerson(t, sqlDB, "Dave API")
-	s, err := web.NewServer(dal.New(sqlDB))
+	s, err := web.NewServer(dal.New(sqlDB, ":memory:"))
 	require.NoError(t, err)
 
 	body := map[string]any{
@@ -393,7 +393,7 @@ func TestAPIDeleteEntity(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = sqlDB.Close() })
 	id := createTestPerson(t, sqlDB, "Eve API")
-	s, err := web.NewServer(dal.New(sqlDB))
+	s, err := web.NewServer(dal.New(sqlDB, ":memory:"))
 	require.NoError(t, err)
 
 	w := doAPIJSON(t, s, http.MethodDelete, "/api/entities/"+id, nil)
@@ -416,7 +416,7 @@ func TestAPICreateRelationship(t *testing.T) {
 	t.Cleanup(func() { _ = sqlDB.Close() })
 	personAID := createTestPerson(t, sqlDB, "Frank API")
 	personBID := createTestPerson(t, sqlDB, "Grace API")
-	s, err := web.NewServer(dal.New(sqlDB))
+	s, err := web.NewServer(dal.New(sqlDB, ":memory:"))
 	require.NoError(t, err)
 
 	body := map[string]any{
@@ -442,7 +442,7 @@ func TestAPIGetRelationship(t *testing.T) {
 	t.Cleanup(func() { _ = sqlDB.Close() })
 	personAID := createTestPerson(t, sqlDB, "Hal API")
 	personBID := createTestPerson(t, sqlDB, "Iris API")
-	s, err := web.NewServer(dal.New(sqlDB))
+	s, err := web.NewServer(dal.New(sqlDB, ":memory:"))
 	require.NoError(t, err)
 
 	// Create via API
@@ -468,7 +468,7 @@ func TestAPIUpdateRelationship(t *testing.T) {
 	t.Cleanup(func() { _ = sqlDB.Close() })
 	personAID := createTestPerson(t, sqlDB, "Jack API")
 	personBID := createTestPerson(t, sqlDB, "Kate API")
-	s, err := web.NewServer(dal.New(sqlDB))
+	s, err := web.NewServer(dal.New(sqlDB, ":memory:"))
 	require.NoError(t, err)
 
 	body := map[string]any{"entity_a_id": personAID, "entity_b_id": personBID, "type": "knows"}
@@ -493,7 +493,7 @@ func TestAPIDeleteRelationship(t *testing.T) {
 	t.Cleanup(func() { _ = sqlDB.Close() })
 	personAID := createTestPerson(t, sqlDB, "Leo API")
 	personBID := createTestPerson(t, sqlDB, "Mia API")
-	s, err := web.NewServer(dal.New(sqlDB))
+	s, err := web.NewServer(dal.New(sqlDB, ":memory:"))
 	require.NoError(t, err)
 
 	body := map[string]any{"entity_a_id": personAID, "entity_b_id": personBID, "type": "knows"}
@@ -528,10 +528,10 @@ func TestBackup_ReturnsDatabase(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = sqlDB.Close() })
 	createTestPerson(t, sqlDB, "Backup Person")
-	s, err := web.NewServer(dal.New(sqlDB))
+	s, err := web.NewServer(dal.New(sqlDB, ":memory:"))
 	require.NoError(t, err)
 
-	w := doGet(t, s, "/backup")
+	w := doGet(t, s, "/api/backup")
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "application/octet-stream", w.Header().Get("Content-Type"))
 	assert.Contains(t, w.Header().Get("Content-Disposition"), "attachment")

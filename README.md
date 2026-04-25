@@ -122,6 +122,8 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /data
+          securityContext:
+            readOnlyRootFilesystem: true   # root FS is read-only; only /data is writable
           resources:
             requests:
               cpu: 50m
@@ -196,14 +198,14 @@ The database is a single SQLite file. The container image does not include shell
 ### HTTP backup endpoint
 
 ```
-GET /backup
+GET /api/backup
 ```
 
-Returns a complete, transactionally-consistent snapshot of the database as a downloadable `.db` file. The snapshot is created using `VACUUM INTO`, which is safe while the server is running and works with WAL mode.
+Returns a complete, transactionally-consistent snapshot of the database as a downloadable `.db` file. The snapshot is created using `VACUUM INTO`, which is safe while the server is running and works with WAL mode. The temporary file is written alongside the database in `/data` (not in `/tmp`), so the container root filesystem can remain read-only.
 
 ```sh
 # Download a backup from a running instance
-curl -o backup-$(date +%Y%m%d).db http://localhost:8080/backup
+curl -o backup-$(date +%Y%m%d).db http://localhost:8080/api/backup
 ```
 
 ### Docker: scheduled backup with cron
@@ -212,7 +214,7 @@ Run a cron job on the host (or a sidecar container) that downloads the backup an
 
 ```sh
 # crontab entry: daily at 02:00
-0 2 * * * curl -sf http://localhost:8080/backup -o /tmp/aurelianprm-backup.db && \
+0 2 * * * curl -sf http://localhost:8080/api/backup -o /tmp/aurelianprm-backup.db && \
            rclone copyto /tmp/aurelianprm-backup.db remote:backups/aurelianprm/$(date +\%Y\%m\%d).db && \
            rm /tmp/aurelianprm-backup.db
 ```
@@ -243,7 +245,7 @@ spec:
                 - |
                   set -e
                   DATE=$(date +%Y%m%d)
-                  wget -q -O /tmp/backup.db http://aurelianprm/backup
+                  wget -q -O /tmp/backup.db http://aurelianprm/api/backup
                   rclone copyto /tmp/backup.db "${RCLONE_DEST}/aurelianprm-${DATE}.db"
               env:
                 - name: RCLONE_DEST
