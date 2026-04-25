@@ -1,0 +1,71 @@
+version: 2
+
+project_name: aurelianprm
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: aurelianprm
+    main: .
+    binary: aurelianprm
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+
+archives:
+  - formats: [tar.gz]
+    name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+
+dockers:
+  - id: amd64
+    ids: [aurelianprm]
+    goos: linux
+    goarch: amd64
+    image_templates:
+      - "ghcr.io/astromechza/aurelianprm:{{ .Tag }}-amd64"
+      - "ghcr.io/astromechza/aurelianprm:latest-amd64"
+    dockerfile: Dockerfile
+    build_flag_templates:
+      - "--platform=linux/amd64"
+
+  - id: arm64
+    ids: [aurelianprm]
+    goos: linux
+    goarch: arm64
+    image_templates:
+      - "ghcr.io/astromechza/aurelianprm:{{ .Tag }}-arm64"
+      - "ghcr.io/astromechza/aurelianprm:latest-arm64"
+    dockerfile: Dockerfile
+    build_flag_templates:
+      - "--platform=linux/arm64"
+
+docker_manifests:
+  - name_template: "ghcr.io/astromechza/aurelianprm:{{ .Tag }}"
+    image_templates:
+      - "ghcr.io/astromechza/aurelianprm:{{ .Tag }}-amd64"
+      - "ghcr.io/astromechza/aurelianprm:{{ .Tag }}-arm64"
+
+  - name_template: "ghcr.io/astromechza/aurelianprm:latest"
+    image_templates:
+      - "ghcr.io/astromechza/aurelianprm:latest-amd64"
+      - "ghcr.io/astromechza/aurelianprm:latest-arm64"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^chore:"
+      - "^docs:"
