@@ -29,7 +29,7 @@ func newTestServer(t *testing.T) *web.Server {
 
 func doGet(t *testing.T, s *web.Server, path string) *httptest.ResponseRecorder {
 	t.Helper()
-	req := httptest.NewRequest(http.MethodGet, path, nil)
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, path, nil)
 	w := httptest.NewRecorder()
 	s.Handler().ServeHTTP(w, req)
 	return w
@@ -37,7 +37,7 @@ func doGet(t *testing.T, s *web.Server, path string) *httptest.ResponseRecorder 
 
 func doGetHX(t *testing.T, s *web.Server, path string) *httptest.ResponseRecorder {
 	t.Helper()
-	req := httptest.NewRequest(http.MethodGet, path, nil)
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, path, nil)
 	req.Header.Set("HX-Request", "true")
 	w := httptest.NewRecorder()
 	s.Handler().ServeHTTP(w, req)
@@ -46,7 +46,7 @@ func doGetHX(t *testing.T, s *web.Server, path string) *httptest.ResponseRecorde
 
 func doPost(t *testing.T, s *web.Server, path, body string) *httptest.ResponseRecorder {
 	t.Helper()
-	req := httptest.NewRequest(http.MethodPost, path, strings.NewReader(body))
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, path, strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	w := httptest.NewRecorder()
 	s.Handler().ServeHTTP(w, req)
@@ -55,7 +55,7 @@ func doPost(t *testing.T, s *web.Server, path, body string) *httptest.ResponseRe
 
 func doMethod(t *testing.T, s *web.Server, method, path, body string) *httptest.ResponseRecorder {
 	t.Helper()
-	req := httptest.NewRequest(method, path, strings.NewReader(body))
+	req := httptest.NewRequestWithContext(t.Context(), method, path, strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	w := httptest.NewRecorder()
 	s.Handler().ServeHTTP(w, req)
@@ -70,7 +70,7 @@ func doAPIJSON(t *testing.T, s *web.Server, method, path string, body any) *http
 		b, err = json.Marshal(body)
 		require.NoError(t, err)
 	}
-	req := httptest.NewRequest(method, path, bytes.NewReader(b))
+	req := httptest.NewRequestWithContext(t.Context(), method, path, bytes.NewReader(b))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	s.Handler().ServeHTTP(w, req)

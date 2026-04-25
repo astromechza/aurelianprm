@@ -1,3 +1,4 @@
+// Package web provides HTTP handlers for the AurelianPRM web interface and JSON API.
 package web
 
 import (

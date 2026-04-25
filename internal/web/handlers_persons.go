@@ -96,7 +96,7 @@ func (s *Server) handlePersonsList(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) handlePersonsNew(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handlePersonsNew(w http.ResponseWriter, _ *http.Request) {
 	s.render(w, "persons-create", nil)
 }
 

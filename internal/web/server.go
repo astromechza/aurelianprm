@@ -117,7 +117,7 @@ func (s *Server) render(w http.ResponseWriter, name string, data any) {
 }
 
 // serverError logs err and responds with a plain 500.
-func (s *Server) serverError(w http.ResponseWriter, r *http.Request, err error) {
+func (s *Server) serverError(w http.ResponseWriter, _ *http.Request, err error) {
 	log.Printf("handler error: %v", err)
 	http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 }
