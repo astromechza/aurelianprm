@@ -73,6 +73,8 @@ func (s *Server) Handler() http.Handler {
 		http.Redirect(w, r, "/persons", http.StatusFound)
 	})
 
+	r.Get("/backup", s.handleBackup)
+
 	r.Get("/persons", s.handlePersonsList)
 	r.Get("/persons/new", s.handlePersonsNew)
 	r.Post("/persons", s.handlePersonsCreate)

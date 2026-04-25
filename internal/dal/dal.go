@@ -39,6 +39,15 @@ func (d *DAL) DB() *sql.DB {
 	return d.db
 }
 
+// Backup writes a consistent copy of the database to destPath using VACUUM INTO.
+// destPath must not already exist; SQLite creates it from scratch.
+func (d *DAL) Backup(ctx context.Context, destPath string) error {
+	if _, err := d.db.ExecContext(ctx, "VACUUM INTO ?", destPath); err != nil {
+		return fmt.Errorf("vacuum into: %w", err)
+	}
+	return nil
+}
+
 // WithTx runs fn inside a transaction. Commits on success, rolls back on error.
 func (d *DAL) WithTx(ctx context.Context, fn func(*Queries) error) error {
 	tx, err := d.db.BeginTx(ctx, nil)

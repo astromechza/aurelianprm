@@ -522,3 +522,21 @@ func TestAPIUpdateRelationship_NotFound(t *testing.T) {
 	w := doAPIJSON(t, s, http.MethodPut, "/api/relationships/NOTEXIST", update)
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }
+
+func TestBackup_ReturnsDatabase(t *testing.T) {
+	sqlDB, err := db.Open(":memory:")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = sqlDB.Close() })
+	createTestPerson(t, sqlDB, "Backup Person")
+	s, err := web.NewServer(dal.New(sqlDB))
+	require.NoError(t, err)
+
+	w := doGet(t, s, "/backup")
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "application/octet-stream", w.Header().Get("Content-Type"))
+	assert.Contains(t, w.Header().Get("Content-Disposition"), "attachment")
+	assert.Contains(t, w.Header().Get("Content-Disposition"), ".db")
+	// A valid SQLite file starts with the magic header string.
+	assert.True(t, w.Body.Len() > 0, "backup response should not be empty")
+	assert.Contains(t, w.Body.String(), "SQLite format 3", "backup should start with SQLite magic header")
+}
