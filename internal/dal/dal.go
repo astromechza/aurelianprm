@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 )
@@ -77,7 +78,11 @@ func (d *DAL) Backup(ctx context.Context, w io.Writer) error {
 	if err != nil {
 		return fmt.Errorf("open backup file: %w", err)
 	}
-	defer backupFile.Close()
+	defer func() {
+		if cerr := backupFile.Close(); cerr != nil {
+			log.Printf("backup file close: %v", cerr)
+		}
+	}()
 
 	if _, err := io.Copy(w, backupFile); err != nil {
 		return fmt.Errorf("stream backup: %w", err)

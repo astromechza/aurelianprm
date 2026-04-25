@@ -536,6 +536,7 @@ func TestBackup_ReturnsDatabase(t *testing.T) {
 	assert.Equal(t, "application/octet-stream", w.Header().Get("Content-Type"))
 	assert.Contains(t, w.Header().Get("Content-Disposition"), "attachment")
 	assert.Contains(t, w.Header().Get("Content-Disposition"), ".db")
+	assert.NotEmpty(t, w.Header().Get("Content-Length"), "Content-Length should be set")
 	// A valid SQLite file starts with the magic header string.
 	assert.True(t, w.Body.Len() > 0, "backup response should not be empty")
 	assert.Contains(t, w.Body.String(), "SQLite format 3", "backup should start with SQLite magic header")
