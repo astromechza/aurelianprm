@@ -206,14 +206,13 @@ Returns a complete, transactionally-consistent snapshot of the database as a dow
 The response includes a `Digest` header (RFC 9530) with the SHA-256 checksum of the body, so you can verify that the transfer was not corrupted:
 
 ```sh
-# Download and verify integrity
-FILE=backup-$(date +%Y%m%d).db
-curl -D headers.txt -o "$FILE" http://localhost:8080/api/backup
+# Download with response headers saved separately
+curl -D headers.txt -o backup.db http://localhost:8080/api/backup
 
-# Extract the expected hash from the Digest header (sha-256=:<base64>:)
-EXPECTED=$(grep -i '^Digest:' headers.txt | sed 's/.*sha-256=://;s/:.*//' | tr -d '\r' | base64 -d | xxd -p -c 256)
-ACTUAL=$(sha256sum "$FILE" | awk '{print $1}')
-[ "$EXPECTED" = "$ACTUAL" ] && echo "OK: integrity verified" || echo "FAIL: checksum mismatch"
+# Compare the server's SHA-256 with the local file
+# The Digest header value is base64-encoded: sha-256=:<base64>:
+grep -i '^Digest:' headers.txt
+sha256sum backup.db
 ```
 
 ### Docker: scheduled backup with cron
