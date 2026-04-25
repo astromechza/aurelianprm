@@ -21,7 +21,7 @@ func newTestServer(t *testing.T) *web.Server {
 	t.Helper()
 	sqlDB, err := db.Open(":memory:")
 	require.NoError(t, err)
-	t.Cleanup(func() { sqlDB.Close() })
+	t.Cleanup(func() { _ = sqlDB.Close() })
 	s, err := web.NewServer(dal.New(sqlDB))
 	require.NoError(t, err)
 	return s
@@ -117,7 +117,7 @@ func TestPersonsList_Empty(t *testing.T) {
 func TestPersonsList_ShowsPersons(t *testing.T) {
 	sqlDB, err := db.Open(":memory:")
 	require.NoError(t, err)
-	t.Cleanup(func() { sqlDB.Close() })
+	t.Cleanup(func() { _ = sqlDB.Close() })
 	createTestPerson(t, sqlDB, "Alice Example")
 	s, err := web.NewServer(dal.New(sqlDB))
 	require.NoError(t, err)
@@ -130,7 +130,7 @@ func TestPersonsList_ShowsPersons(t *testing.T) {
 func TestPersonsSearch_ReturnsPartial(t *testing.T) {
 	sqlDB, err := db.Open(":memory:")
 	require.NoError(t, err)
-	t.Cleanup(func() { sqlDB.Close() })
+	t.Cleanup(func() { _ = sqlDB.Close() })
 	createTestPerson(t, sqlDB, "Bob Builder")
 	s, err := web.NewServer(dal.New(sqlDB))
 	require.NoError(t, err)
@@ -177,7 +177,7 @@ func TestPersonsCreate_RequiresName(t *testing.T) {
 func TestPersonsDetail_Returns200(t *testing.T) {
 	sqlDB, err := db.Open(":memory:")
 	require.NoError(t, err)
-	t.Cleanup(func() { sqlDB.Close() })
+	t.Cleanup(func() { _ = sqlDB.Close() })
 	id := createTestPerson(t, sqlDB, "Carol Detail")
 	s, err := web.NewServer(dal.New(sqlDB))
 	require.NoError(t, err)
@@ -196,7 +196,7 @@ func TestPersonsDetail_NotFound(t *testing.T) {
 func TestPersonsUpdate_Redirects(t *testing.T) {
 	sqlDB, err := db.Open(":memory:")
 	require.NoError(t, err)
-	t.Cleanup(func() { sqlDB.Close() })
+	t.Cleanup(func() { _ = sqlDB.Close() })
 	id := createTestPerson(t, sqlDB, "Dave Old")
 	s, err := web.NewServer(dal.New(sqlDB))
 	require.NoError(t, err)
@@ -208,7 +208,7 @@ func TestPersonsUpdate_Redirects(t *testing.T) {
 func TestPersonsDelete_Redirects(t *testing.T) {
 	sqlDB, err := db.Open(":memory:")
 	require.NoError(t, err)
-	t.Cleanup(func() { sqlDB.Close() })
+	t.Cleanup(func() { _ = sqlDB.Close() })
 	id := createTestPerson(t, sqlDB, "Eve Delete")
 	s, err := web.NewServer(dal.New(sqlDB))
 	require.NoError(t, err)
@@ -221,7 +221,7 @@ func TestPersonsDelete_Redirects(t *testing.T) {
 func TestEntitiesCreate_ReturnsPartial(t *testing.T) {
 	sqlDB, err := db.Open(":memory:")
 	require.NoError(t, err)
-	t.Cleanup(func() { sqlDB.Close() })
+	t.Cleanup(func() { _ = sqlDB.Close() })
 	personID := createTestPerson(t, sqlDB, "Frank Entity")
 	s, err := web.NewServer(dal.New(sqlDB))
 	require.NoError(t, err)
@@ -237,7 +237,7 @@ func TestEntitiesCreate_ReturnsPartial(t *testing.T) {
 func TestRelationshipsCreate_ReturnsPartial(t *testing.T) {
 	sqlDB, err := db.Open(":memory:")
 	require.NoError(t, err)
-	t.Cleanup(func() { sqlDB.Close() })
+	t.Cleanup(func() { _ = sqlDB.Close() })
 	personAID := createTestPerson(t, sqlDB, "Alice Rel")
 	personBID := createTestPerson(t, sqlDB, "Bob Rel")
 	s, err := web.NewServer(dal.New(sqlDB))
@@ -253,7 +253,7 @@ func TestRelationshipsCreate_ReturnsPartial(t *testing.T) {
 func TestRelationshipsDelete_Returns200(t *testing.T) {
 	sqlDB, err := db.Open(":memory:")
 	require.NoError(t, err)
-	t.Cleanup(func() { sqlDB.Close() })
+	t.Cleanup(func() { _ = sqlDB.Close() })
 	personAID := createTestPerson(t, sqlDB, "Carol Rel")
 	personBID := createTestPerson(t, sqlDB, "Dave Rel")
 	s, err := web.NewServer(dal.New(sqlDB))
@@ -280,7 +280,7 @@ func TestRelationshipsDelete_Returns200(t *testing.T) {
 func TestEntitiesDelete_Returns200(t *testing.T) {
 	sqlDB, err := db.Open(":memory:")
 	require.NoError(t, err)
-	t.Cleanup(func() { sqlDB.Close() })
+	t.Cleanup(func() { _ = sqlDB.Close() })
 	personID := createTestPerson(t, sqlDB, "Grace Delete")
 	s, err := web.NewServer(dal.New(sqlDB))
 	require.NoError(t, err)
@@ -305,7 +305,7 @@ func TestEntitiesDelete_Returns200(t *testing.T) {
 func TestAPISearchEntities(t *testing.T) {
 	sqlDB, err := db.Open(":memory:")
 	require.NoError(t, err)
-	t.Cleanup(func() { sqlDB.Close() })
+	t.Cleanup(func() { _ = sqlDB.Close() })
 	createTestPerson(t, sqlDB, "Alice API")
 	s, err := web.NewServer(dal.New(sqlDB))
 	require.NoError(t, err)
@@ -333,7 +333,7 @@ func TestAPISearchEntities(t *testing.T) {
 func TestAPIGetEntity_Found(t *testing.T) {
 	sqlDB, err := db.Open(":memory:")
 	require.NoError(t, err)
-	t.Cleanup(func() { sqlDB.Close() })
+	t.Cleanup(func() { _ = sqlDB.Close() })
 	id := createTestPerson(t, sqlDB, "Bob API")
 	s, err := web.NewServer(dal.New(sqlDB))
 	require.NoError(t, err)
@@ -372,7 +372,7 @@ func TestAPICreateEntity(t *testing.T) {
 func TestAPIUpdateEntity(t *testing.T) {
 	sqlDB, err := db.Open(":memory:")
 	require.NoError(t, err)
-	t.Cleanup(func() { sqlDB.Close() })
+	t.Cleanup(func() { _ = sqlDB.Close() })
 	id := createTestPerson(t, sqlDB, "Dave API")
 	s, err := web.NewServer(dal.New(sqlDB))
 	require.NoError(t, err)
@@ -391,7 +391,7 @@ func TestAPIUpdateEntity(t *testing.T) {
 func TestAPIDeleteEntity(t *testing.T) {
 	sqlDB, err := db.Open(":memory:")
 	require.NoError(t, err)
-	t.Cleanup(func() { sqlDB.Close() })
+	t.Cleanup(func() { _ = sqlDB.Close() })
 	id := createTestPerson(t, sqlDB, "Eve API")
 	s, err := web.NewServer(dal.New(sqlDB))
 	require.NoError(t, err)
@@ -413,7 +413,7 @@ func TestAPIDeleteEntity_NotFound(t *testing.T) {
 func TestAPICreateRelationship(t *testing.T) {
 	sqlDB, err := db.Open(":memory:")
 	require.NoError(t, err)
-	t.Cleanup(func() { sqlDB.Close() })
+	t.Cleanup(func() { _ = sqlDB.Close() })
 	personAID := createTestPerson(t, sqlDB, "Frank API")
 	personBID := createTestPerson(t, sqlDB, "Grace API")
 	s, err := web.NewServer(dal.New(sqlDB))
@@ -439,7 +439,7 @@ func TestAPICreateRelationship(t *testing.T) {
 func TestAPIGetRelationship(t *testing.T) {
 	sqlDB, err := db.Open(":memory:")
 	require.NoError(t, err)
-	t.Cleanup(func() { sqlDB.Close() })
+	t.Cleanup(func() { _ = sqlDB.Close() })
 	personAID := createTestPerson(t, sqlDB, "Hal API")
 	personBID := createTestPerson(t, sqlDB, "Iris API")
 	s, err := web.NewServer(dal.New(sqlDB))
@@ -465,7 +465,7 @@ func TestAPIGetRelationship(t *testing.T) {
 func TestAPIUpdateRelationship(t *testing.T) {
 	sqlDB, err := db.Open(":memory:")
 	require.NoError(t, err)
-	t.Cleanup(func() { sqlDB.Close() })
+	t.Cleanup(func() { _ = sqlDB.Close() })
 	personAID := createTestPerson(t, sqlDB, "Jack API")
 	personBID := createTestPerson(t, sqlDB, "Kate API")
 	s, err := web.NewServer(dal.New(sqlDB))
@@ -490,7 +490,7 @@ func TestAPIUpdateRelationship(t *testing.T) {
 func TestAPIDeleteRelationship(t *testing.T) {
 	sqlDB, err := db.Open(":memory:")
 	require.NoError(t, err)
-	t.Cleanup(func() { sqlDB.Close() })
+	t.Cleanup(func() { _ = sqlDB.Close() })
 	personAID := createTestPerson(t, sqlDB, "Leo API")
 	personBID := createTestPerson(t, sqlDB, "Mia API")
 	s, err := web.NewServer(dal.New(sqlDB))
