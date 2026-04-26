@@ -571,3 +571,268 @@ func TestGetNeighboursByRelType(t *testing.T) {
 	require.Len(t, emails, 1)
 	require.Equal(t, "EmailAddress", emails[0].Entity.Type)
 }
+
+func TestCreateNote_and_GetNote(t *testing.T) {
+	d := newTestDAL(t)
+	ctx := context.Background()
+
+	var personID string
+	err := d.WithTx(ctx, func(q *dal.Queries) error {
+		p, err := q.CreateEntity(ctx, dal.CreateEntityParams{
+			Type: "Person", Data: json.RawMessage(`{"name":"Alice"}`),
+		})
+		personID = p.ID
+		return err
+	})
+	require.NoError(t, err)
+
+	var note dal.NoteWithPersons
+	err = d.WithTx(ctx, func(q *dal.Queries) error {
+		var err error
+		note, err = q.CreateNote(ctx, dal.CreateNoteParams{
+			Type:      "CONVERSATION",
+			Date:      "2026-04-26",
+			Content:   "Caught up over coffee.",
+			PersonIDs: []string{personID},
+		})
+		return err
+	})
+	require.NoError(t, err)
+	require.NotEmpty(t, note.ID)
+	require.Equal(t, "CONVERSATION", note.Type)
+	require.Equal(t, "2026-04-26", note.Date)
+	require.Equal(t, "Caught up over coffee.", note.Content)
+	require.Len(t, note.Persons, 1)
+	require.Equal(t, personID, note.Persons[0].ID)
+
+	var fetched dal.NoteWithPersons
+	err = d.WithTx(ctx, func(q *dal.Queries) error {
+		var err error
+		fetched, err = q.GetNote(ctx, note.ID)
+		return err
+	})
+	require.NoError(t, err)
+	require.Equal(t, note.ID, fetched.ID)
+	require.Len(t, fetched.Persons, 1)
+}
+
+func TestGetNote_notFound(t *testing.T) {
+	d := newTestDAL(t)
+	ctx := context.Background()
+	err := d.WithTx(ctx, func(q *dal.Queries) error {
+		_, err := q.GetNote(ctx, "NOTEXIST")
+		return err
+	})
+	require.ErrorIs(t, err, sql.ErrNoRows)
+}
+
+func TestCreateNote_invalidType(t *testing.T) {
+	d := newTestDAL(t)
+	ctx := context.Background()
+
+	var personID string
+	_ = d.WithTx(ctx, func(q *dal.Queries) error {
+		p, err := q.CreateEntity(ctx, dal.CreateEntityParams{
+			Type: "Person", Data: json.RawMessage(`{"name":"Bob"}`),
+		})
+		personID = p.ID
+		return err
+	})
+
+	err := d.WithTx(ctx, func(q *dal.Queries) error {
+		_, err := q.CreateNote(ctx, dal.CreateNoteParams{
+			Type:      "INVALID",
+			Date:      "2026-04-26",
+			Content:   "test",
+			PersonIDs: []string{personID},
+		})
+		return err
+	})
+	require.Error(t, err)
+}
+
+func TestCreateNote_invalidDate(t *testing.T) {
+	d := newTestDAL(t)
+	ctx := context.Background()
+
+	var personID string
+	_ = d.WithTx(ctx, func(q *dal.Queries) error {
+		p, err := q.CreateEntity(ctx, dal.CreateEntityParams{
+			Type: "Person", Data: json.RawMessage(`{"name":"Carol"}`),
+		})
+		personID = p.ID
+		return err
+	})
+
+	err := d.WithTx(ctx, func(q *dal.Queries) error {
+		_, err := q.CreateNote(ctx, dal.CreateNoteParams{
+			Type:      "HANGOUT",
+			Date:      "2026-4-1", // wrong format
+			Content:   "test",
+			PersonIDs: []string{personID},
+		})
+		return err
+	})
+	require.Error(t, err)
+}
+
+func TestCreateNote_nonPersonEntity(t *testing.T) {
+	d := newTestDAL(t)
+	ctx := context.Background()
+
+	var emailID string
+	_ = d.WithTx(ctx, func(q *dal.Queries) error {
+		e, err := q.CreateEntity(ctx, dal.CreateEntityParams{
+			Type: "EmailAddress", Data: json.RawMessage(`{"email":"x@x.com"}`),
+		})
+		emailID = e.ID
+		return err
+	})
+
+	err := d.WithTx(ctx, func(q *dal.Queries) error {
+		_, err := q.CreateNote(ctx, dal.CreateNoteParams{
+			Type:      "CONVERSATION",
+			Date:      "2026-04-26",
+			Content:   "test",
+			PersonIDs: []string{emailID},
+		})
+		return err
+	})
+	require.Error(t, err)
+}
+
+func TestUpdateNote_replacesPersons(t *testing.T) {
+	d := newTestDAL(t)
+	ctx := context.Background()
+
+	var p1ID, p2ID, noteID string
+	err := d.WithTx(ctx, func(q *dal.Queries) error {
+		p1, err := q.CreateEntity(ctx, dal.CreateEntityParams{
+			Type: "Person", Data: json.RawMessage(`{"name":"Dave"}`),
+		})
+		if err != nil {
+			return err
+		}
+		p1ID = p1.ID
+		p2, err := q.CreateEntity(ctx, dal.CreateEntityParams{
+			Type: "Person", Data: json.RawMessage(`{"name":"Eve"}`),
+		})
+		if err != nil {
+			return err
+		}
+		p2ID = p2.ID
+		note, err := q.CreateNote(ctx, dal.CreateNoteParams{
+			Type:      "HANGOUT",
+			Date:      "2026-04-26",
+			Content:   "initial",
+			PersonIDs: []string{p1ID},
+		})
+		noteID = note.ID
+		return err
+	})
+	require.NoError(t, err)
+
+	err = d.WithTx(ctx, func(q *dal.Queries) error {
+		return q.UpdateNote(ctx, dal.UpdateNoteParams{
+			ID:        noteID,
+			Type:      "CONVERSATION",
+			Date:      "2026-04-27",
+			Content:   "updated",
+			PersonIDs: []string{p1ID, p2ID},
+		})
+	})
+	require.NoError(t, err)
+
+	var fetched dal.NoteWithPersons
+	err = d.WithTx(ctx, func(q *dal.Queries) error {
+		var err error
+		fetched, err = q.GetNote(ctx, noteID)
+		return err
+	})
+	require.NoError(t, err)
+	require.Equal(t, "CONVERSATION", fetched.Type)
+	require.Equal(t, "2026-04-27", fetched.Date)
+	require.Equal(t, "updated", fetched.Content)
+	require.Len(t, fetched.Persons, 2)
+}
+
+func TestDeleteNote_cascades(t *testing.T) {
+	d := newTestDAL(t)
+	ctx := context.Background()
+
+	var noteID string
+	err := d.WithTx(ctx, func(q *dal.Queries) error {
+		p, err := q.CreateEntity(ctx, dal.CreateEntityParams{
+			Type: "Person", Data: json.RawMessage(`{"name":"Frank"}`),
+		})
+		if err != nil {
+			return err
+		}
+		note, err := q.CreateNote(ctx, dal.CreateNoteParams{
+			Type:      "LIFE_EVENT",
+			Date:      "2026-04-26",
+			Content:   "graduated",
+			PersonIDs: []string{p.ID},
+		})
+		noteID = note.ID
+		return err
+	})
+	require.NoError(t, err)
+
+	err = d.WithTx(ctx, func(q *dal.Queries) error {
+		return q.DeleteNote(ctx, noteID)
+	})
+	require.NoError(t, err)
+
+	var count int
+	require.NoError(t, d.DB().QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM note_persons WHERE note_id=?`, noteID).Scan(&count))
+	require.Equal(t, 0, count)
+
+	err = d.WithTx(ctx, func(q *dal.Queries) error {
+		_, err := q.GetNote(ctx, noteID)
+		return err
+	})
+	require.ErrorIs(t, err, sql.ErrNoRows)
+}
+
+func TestListNotesForPerson_orderedByDate(t *testing.T) {
+	d := newTestDAL(t)
+	ctx := context.Background()
+
+	var personID string
+	err := d.WithTx(ctx, func(q *dal.Queries) error {
+		p, err := q.CreateEntity(ctx, dal.CreateEntityParams{
+			Type: "Person", Data: json.RawMessage(`{"name":"Grace"}`),
+		})
+		if err != nil {
+			return err
+		}
+		personID = p.ID
+		for _, date := range []string{"2026-01-01", "2026-03-15", "2026-02-10"} {
+			if _, err := q.CreateNote(ctx, dal.CreateNoteParams{
+				Type:      "HANGOUT",
+				Date:      date,
+				Content:   "note on " + date,
+				PersonIDs: []string{personID},
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	require.NoError(t, err)
+
+	var notes []dal.NoteWithPersons
+	err = d.WithTx(ctx, func(q *dal.Queries) error {
+		var err error
+		notes, err = q.ListNotesForPerson(ctx, personID)
+		return err
+	})
+	require.NoError(t, err)
+	require.Len(t, notes, 3)
+	// Most recent first
+	require.Equal(t, "2026-03-15", notes[0].Date)
+	require.Equal(t, "2026-02-10", notes[1].Date)
+	require.Equal(t, "2026-01-01", notes[2].Date)
+}
