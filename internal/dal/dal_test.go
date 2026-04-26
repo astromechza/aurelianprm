@@ -9,6 +9,7 @@ import (
 
 	"github.com/astromechza/aurelianprm/internal/dal"
 	"github.com/astromechza/aurelianprm/internal/db"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -631,13 +632,13 @@ func TestCreateNote_invalidType(t *testing.T) {
 	ctx := context.Background()
 
 	var personID string
-	_ = d.WithTx(ctx, func(q *dal.Queries) error {
+	require.NoError(t, d.WithTx(ctx, func(q *dal.Queries) error {
 		p, err := q.CreateEntity(ctx, dal.CreateEntityParams{
 			Type: "Person", Data: json.RawMessage(`{"name":"Bob"}`),
 		})
 		personID = p.ID
 		return err
-	})
+	}))
 
 	err := d.WithTx(ctx, func(q *dal.Queries) error {
 		_, err := q.CreateNote(ctx, dal.CreateNoteParams{
@@ -656,13 +657,13 @@ func TestCreateNote_invalidDate(t *testing.T) {
 	ctx := context.Background()
 
 	var personID string
-	_ = d.WithTx(ctx, func(q *dal.Queries) error {
+	require.NoError(t, d.WithTx(ctx, func(q *dal.Queries) error {
 		p, err := q.CreateEntity(ctx, dal.CreateEntityParams{
 			Type: "Person", Data: json.RawMessage(`{"name":"Carol"}`),
 		})
 		personID = p.ID
 		return err
-	})
+	}))
 
 	err := d.WithTx(ctx, func(q *dal.Queries) error {
 		_, err := q.CreateNote(ctx, dal.CreateNoteParams{
@@ -681,13 +682,13 @@ func TestCreateNote_nonPersonEntity(t *testing.T) {
 	ctx := context.Background()
 
 	var emailID string
-	_ = d.WithTx(ctx, func(q *dal.Queries) error {
+	require.NoError(t, d.WithTx(ctx, func(q *dal.Queries) error {
 		e, err := q.CreateEntity(ctx, dal.CreateEntityParams{
 			Type: "EmailAddress", Data: json.RawMessage(`{"email":"x@x.com"}`),
 		})
 		emailID = e.ID
 		return err
-	})
+	}))
 
 	err := d.WithTx(ctx, func(q *dal.Queries) error {
 		_, err := q.CreateNote(ctx, dal.CreateNoteParams{
@@ -835,4 +836,65 @@ func TestListNotesForPerson_orderedByDate(t *testing.T) {
 	require.Equal(t, "2026-03-15", notes[0].Date)
 	require.Equal(t, "2026-02-10", notes[1].Date)
 	require.Equal(t, "2026-01-01", notes[2].Date)
+}
+
+func TestListAllNotes(t *testing.T) {
+	ctx := context.Background()
+	d := newTestDAL(t)
+
+	var p1ID, p2ID string
+	require.NoError(t, d.WithTx(ctx, func(q *dal.Queries) error {
+		p1, err := q.CreateEntity(ctx, dal.CreateEntityParams{
+			Type: "Person",
+			Data: json.RawMessage(`{"name":"Alice"}`),
+		})
+		if err != nil {
+			return err
+		}
+		p1ID = p1.ID
+		p2, err := q.CreateEntity(ctx, dal.CreateEntityParams{
+			Type: "Person",
+			Data: json.RawMessage(`{"name":"Bob"}`),
+		})
+		if err != nil {
+			return err
+		}
+		p2ID = p2.ID
+		return nil
+	}))
+
+	var n1ID string
+	require.NoError(t, d.WithTx(ctx, func(q *dal.Queries) error {
+		n, err := q.CreateNote(ctx, dal.CreateNoteParams{
+			Type:      "CONVERSATION",
+			Date:      "2026-01-01",
+			Content:   "Note for Alice",
+			PersonIDs: []string{p1ID},
+		})
+		if err != nil {
+			return err
+		}
+		n1ID = n.ID
+		_, err = q.CreateNote(ctx, dal.CreateNoteParams{
+			Type:      "HANGOUT",
+			Date:      "2026-02-01",
+			Content:   "Note for Bob",
+			PersonIDs: []string{p2ID},
+		})
+		return err
+	}))
+	_ = n1ID
+
+	var notes []dal.NoteWithPersons
+	require.NoError(t, d.WithTx(ctx, func(q *dal.Queries) error {
+		var err error
+		notes, err = q.ListAllNotes(ctx)
+		return err
+	}))
+	require.Len(t, notes, 2)
+	// ordered date DESC: Bob note (2026-02-01) first
+	assert.Equal(t, "2026-02-01", notes[0].Date)
+	assert.Equal(t, "2026-01-01", notes[1].Date)
+	assert.Len(t, notes[0].Persons, 1)
+	assert.Len(t, notes[1].Persons, 1)
 }

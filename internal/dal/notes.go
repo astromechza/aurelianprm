@@ -36,7 +36,7 @@ type NoteWithPersons struct {
 // CreateNoteParams holds fields for inserting a new note.
 type CreateNoteParams struct {
 	Type      string
-	Date      string   // YYYY-MM-DD
+	Date      string // YYYY-MM-DD
 	Content   string
 	PersonIDs []string // must be non-empty; all must resolve to type=Person
 }
@@ -121,7 +121,8 @@ func (q *Queries) insertNotePersons(ctx context.Context, noteID string, personID
 	return nil
 }
 
-// CreateNote validates and inserts a note with its person links.
+// CreateNote inserts a new note and its person associations.
+// Multi-table write: call inside WithTx for atomicity.
 func (q *Queries) CreateNote(ctx context.Context, params CreateNoteParams) (NoteWithPersons, error) {
 	if err := validateNoteFields(params.Type, params.Date, params.Content, params.PersonIDs); err != nil {
 		return NoteWithPersons{}, fmt.Errorf("create note: %w", err)
@@ -158,7 +159,8 @@ func (q *Queries) GetNote(ctx context.Context, id string) (NoteWithPersons, erro
 	return NoteWithPersons{Note: note, Persons: persons}, nil
 }
 
-// UpdateNote validates and updates a note's fields and person links atomically.
+// UpdateNote replaces a note's fields and its person associations.
+// Multi-table write: call inside WithTx for atomicity.
 func (q *Queries) UpdateNote(ctx context.Context, params UpdateNoteParams) error {
 	if err := validateNoteFields(params.Type, params.Date, params.Content, params.PersonIDs); err != nil {
 		return fmt.Errorf("update note: %w", err)
@@ -177,13 +179,20 @@ func (q *Queries) UpdateNote(ctx context.Context, params UpdateNoteParams) error
 	if _, err := q.db.ExecContext(ctx, `DELETE FROM note_persons WHERE note_id=?`, params.ID); err != nil {
 		return fmt.Errorf("update note: clear persons: %w", err)
 	}
-	return q.insertNotePersons(ctx, params.ID, params.PersonIDs)
+	if err := q.insertNotePersons(ctx, params.ID, params.PersonIDs); err != nil {
+		return fmt.Errorf("update note: %w", err)
+	}
+	return nil
 }
 
 // DeleteNote removes a note by ID. Cascades to note_persons.
 func (q *Queries) DeleteNote(ctx context.Context, id string) error {
-	if _, err := q.db.ExecContext(ctx, `DELETE FROM notes WHERE id=?`, id); err != nil {
+	res, err := q.db.ExecContext(ctx, `DELETE FROM notes WHERE id=?`, id)
+	if err != nil {
 		return fmt.Errorf("delete note: %w", err)
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return fmt.Errorf("delete note: %w", sql.ErrNoRows)
 	}
 	return nil
 }
