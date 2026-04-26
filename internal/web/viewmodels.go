@@ -72,6 +72,8 @@ type PersonDetailView struct {
 	PersonData PersonData
 	Sections   []EntitySection
 	People     []PersonRelSection
+	Notes      []dal.NoteWithPersons // timeline notes, date DESC
+	Today      string                // YYYY-MM-DD for create form default
 }
 
 // EntityFormView is the view model for the add/edit contact entity partial.
@@ -103,6 +105,23 @@ type RelationshipFormView struct {
 	Note        string
 	OtherPerson *dal.Entity
 	Error       string
+}
+
+// NoteRowView is the view model for a single note row partial.
+type NoteRowView struct {
+	Note            dal.NoteWithPersons
+	CurrentPersonID string
+}
+
+// NoteFormView is the view model for the add/edit note form partial.
+type NoteFormView struct {
+	NoteID          string
+	CurrentPersonID string
+	EditMode        bool
+	Type            string
+	Date            string
+	Content         string
+	SelectedPersons []dal.Entity
 }
 
 // decodeDataMap decodes entity JSON data into a plain map for template use.

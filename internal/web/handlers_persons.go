@@ -86,10 +86,15 @@ func (s *Server) handlePersonsList(w http.ResponseWriter, r *http.Request) {
 	view := PersonListView{Query: q, LinkRel: linkRel, Persons: items, UpcomingBirthdays: upcoming}
 
 	if isHTMX(r) {
-		if linkRel != "" {
-			s.render(w, "link-persons-rows", view)
-		} else {
+		switch linkRel {
+		case "note":
+			s.render(w, "note-person-search-rows", view)
+		case "note-edit":
+			s.render(w, "note-person-search-rows-edit", view)
+		case "":
 			s.render(w, "persons-rows", view)
+		default:
+			s.render(w, "link-persons-rows", view)
 		}
 	} else {
 		s.render(w, "persons-list", view)

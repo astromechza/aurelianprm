@@ -51,6 +51,30 @@ func NewServer(d *dal.DAL) (*Server, error) {
 				EditMode: false,
 			}
 		},
+		"noteIcon": func(noteType string) string {
+			if t, ok := dal.NoteTypes[noteType]; ok {
+				return t.Icon
+			}
+			return "📝"
+		},
+		"noteLabel": func(noteType string) string {
+			if t, ok := dal.NoteTypes[noteType]; ok {
+				return t.Label
+			}
+			return noteType
+		},
+		"noteRow": func(note dal.NoteWithPersons, personID string) NoteRowView {
+			return NoteRowView{Note: note, CurrentPersonID: personID}
+		},
+		"notePersonsExcept": func(persons []dal.Entity, excludeID string) []dal.Entity {
+			var out []dal.Entity
+			for _, p := range persons {
+				if p.ID != excludeID {
+					out = append(out, p)
+				}
+			}
+			return out
+		},
 	}
 	tmpl, err := template.New("").Funcs(funcs).ParseFS(
 		templatesFS,
@@ -94,6 +118,12 @@ func (s *Server) Handler() http.Handler {
 	r.Put("/relationships/{rid}", s.handleRelationshipsUpdate)
 	r.Delete("/relationships/{rid}", s.handleRelationshipsDelete)
 
+	r.Post("/persons/{id}/notes", s.handleNotesCreate)
+	r.Get("/notes/{nid}/edit", s.handleNotesEditForm)
+	r.Get("/notes/{nid}/cancel", s.handleNotesCancel)
+	r.Put("/notes/{nid}", s.handleNotesUpdate)
+	r.Delete("/notes/{nid}", s.handleNotesDelete)
+
 	r.Route("/api", func(r chi.Router) {
 		r.Get("/backup", s.handleAPIBackup)
 		r.Post("/search-entities", s.handleAPISearchEntities)
@@ -105,6 +135,11 @@ func (s *Server) Handler() http.Handler {
 		r.Post("/relationships", s.handleAPICreateRelationship)
 		r.Put("/relationships/{rid}", s.handleAPIUpdateRelationship)
 		r.Delete("/relationships/{rid}", s.handleAPIDeleteRelationship)
+		r.Get("/notes", s.handleAPIListNotes)
+		r.Post("/notes", s.handleAPICreateNote)
+		r.Put("/notes/{nid}", s.handleAPIUpdateNote)
+		r.Delete("/notes/{nid}", s.handleAPIDeleteNote)
+		r.Get("/persons/{id}/notes", s.handleAPIListNotesForPerson)
 	})
 
 	return r
