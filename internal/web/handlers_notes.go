@@ -134,6 +134,10 @@ func (s *Server) handleNotesUpdate(w http.ResponseWriter, r *http.Request) {
 		return nil
 	})
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			http.NotFound(w, r)
+			return
+		}
 		s.serverError(w, r, err)
 		return
 	}
@@ -144,9 +148,16 @@ func (s *Server) handleNotesDelete(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	nid := chi.URLParam(r, "nid")
 	err := s.dal.WithTx(ctx, func(q *dal.Queries) error {
+		if _, err := q.GetNote(ctx, nid); err != nil {
+			return err
+		}
 		return q.DeleteNote(ctx, nid)
 	})
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			http.NotFound(w, r)
+			return
+		}
 		s.serverError(w, r, err)
 		return
 	}

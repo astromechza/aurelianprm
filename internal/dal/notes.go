@@ -174,7 +174,7 @@ func (q *Queries) UpdateNote(ctx context.Context, params UpdateNoteParams) error
 	}
 	n, _ := res.RowsAffected()
 	if n == 0 {
-		return fmt.Errorf("update note: id %q not found", params.ID)
+		return fmt.Errorf("update note: %w", sql.ErrNoRows)
 	}
 	if _, err := q.db.ExecContext(ctx, `DELETE FROM note_persons WHERE note_id=?`, params.ID); err != nil {
 		return fmt.Errorf("update note: clear persons: %w", err)
