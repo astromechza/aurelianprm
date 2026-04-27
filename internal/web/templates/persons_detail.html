@@ -158,7 +158,7 @@
           {{personName .Person}}<input type="hidden" name="person_id" value="{{.Person.ID}}">
         </span>
       </div>
-      <input type="search" placeholder="Add another person…"
+      <input type="search" name="q" placeholder="Add another person…"
         hx-get="/persons?link_rel=note"
         hx-trigger="input delay:300ms"
         hx-target="#note-person-results"

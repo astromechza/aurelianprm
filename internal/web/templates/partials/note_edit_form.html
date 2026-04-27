@@ -25,7 +25,7 @@
           </span>
           {{end}}
         </div>
-        <input type="search" placeholder="Add person…"
+        <input type="search" name="q" placeholder="Add person…"
           hx-get="/persons?link_rel=note-edit"
           hx-trigger="input delay:300ms"
           hx-target="#note-edit-person-results"
