@@ -661,6 +661,12 @@ func TestAPIUpdateNote_notFound(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }
 
+func TestAPIDeleteNote_notFound(t *testing.T) {
+	s := newTestServer(t)
+	w := doAPIJSON(t, s, http.MethodDelete, "/api/notes/NOTEXIST", nil)
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
 func TestAPIDeleteNote(t *testing.T) {
 	sqlDB, err := db.Open(":memory:")
 	require.NoError(t, err)

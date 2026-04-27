@@ -43,9 +43,14 @@
       if (c.querySelector('[data-person-chip="'+id+'"]')) return;
       var s = document.createElement('span');
       s.setAttribute('data-person-chip', id);
-      s.innerHTML = name
-        + ' <input type="hidden" name="person_id" value="'+id+'">'
-        + '<button type="button" onclick="this.closest(\'[data-person-chip]\').remove()">×</button>';
+      s.appendChild(document.createTextNode(name + ' '));
+      var inp = document.createElement('input');
+      inp.type = 'hidden'; inp.name = 'person_id'; inp.value = id;
+      s.appendChild(inp);
+      var btn = document.createElement('button');
+      btn.type = 'button'; btn.textContent = '×';
+      btn.onclick = function() { this.closest('[data-person-chip]').remove(); };
+      s.appendChild(btn);
       c.appendChild(s);
     }
     </script>
