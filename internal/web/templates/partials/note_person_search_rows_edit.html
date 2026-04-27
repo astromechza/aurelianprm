@@ -1,0 +1,12 @@
+{{define "note-person-search-rows-edit"}}
+<table><tbody>
+{{range .Persons}}
+<tr>
+  <td>{{.Name}}</td>
+  <td><button type="button" onclick="addNotePersonEdit('{{.ID}}','{{.Name}}')">Add</button></td>
+</tr>
+{{else}}
+<tr><td colspan="2"><em>No results.</em></td></tr>
+{{end}}
+</tbody></table>
+{{end}}

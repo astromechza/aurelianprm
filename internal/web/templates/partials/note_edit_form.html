@@ -1,0 +1,54 @@
+{{define "note-edit-form"}}
+<tr data-note-row>
+  <td colspan="5">
+    <form hx-put="/notes/{{.NoteID}}?person_id={{.CurrentPersonID}}"
+          hx-target="closest [data-note-row]" hx-swap="outerHTML">
+      <div class="grid">
+        <label>Type
+          <select name="type">
+            <option value="CONVERSATION"{{if eq .Type "CONVERSATION"}} selected{{end}}>💬 Conversation</option>
+            <option value="HANGOUT"{{if eq .Type "HANGOUT"}} selected{{end}}>🤝 Hangout</option>
+            <option value="LIFE_EVENT"{{if eq .Type "LIFE_EVENT"}} selected{{end}}>🎯 Life Event</option>
+          </select>
+        </label>
+        <label>Date <input type="date" name="date" value="{{.Date}}" required></label>
+      </div>
+      <label>Note <textarea name="content" required>{{.Content}}</textarea></label>
+      <div>
+        <strong>People</strong>
+        <div id="note-edit-persons-selected">
+          {{range .SelectedPersons}}
+          <span data-person-chip="{{.ID}}">
+            {{personName .}}
+            <input type="hidden" name="person_id" value="{{.ID}}">
+            <button type="button" onclick="this.closest('[data-person-chip]').remove()">×</button>
+          </span>
+          {{end}}
+        </div>
+        <input type="search" placeholder="Add person…"
+          hx-get="/persons?link_rel=note-edit"
+          hx-trigger="input delay:300ms"
+          hx-target="#note-edit-person-results"
+          hx-swap="innerHTML">
+        <div id="note-edit-person-results"></div>
+      </div>
+      <button type="submit">Save</button>
+      <button type="button"
+              hx-get="/notes/{{.NoteID}}/cancel?person_id={{.CurrentPersonID}}"
+              hx-target="closest [data-note-row]" hx-swap="outerHTML">Cancel</button>
+    </form>
+    <script>
+    function addNotePersonEdit(id, name) {
+      var c = document.getElementById('note-edit-persons-selected');
+      if (c.querySelector('[data-person-chip="'+id+'"]')) return;
+      var s = document.createElement('span');
+      s.setAttribute('data-person-chip', id);
+      s.innerHTML = name
+        + ' <input type="hidden" name="person_id" value="'+id+'">'
+        + '<button type="button" onclick="this.closest(\'[data-person-chip]\').remove()">×</button>';
+      c.appendChild(s);
+    }
+    </script>
+  </td>
+</tr>
+{{end}}

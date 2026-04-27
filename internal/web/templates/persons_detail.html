@@ -132,6 +132,61 @@
   </details>
 </article>
 
+<article id="notes-section">
+  <header><h3>Timeline</h3></header>
+  <form
+    hx-post="/persons/{{.Person.ID}}/notes"
+    hx-target="#notes-list"
+    hx-swap="afterbegin"
+    hx-on:htmx:after-request="if(event.detail.successful && event.detail.elt===this){this.reset();var sel=document.getElementById('note-persons-selected');sel.innerHTML='';var h=document.createElement('span');h.setAttribute('data-person-chip','{{.Person.ID}}');h.innerHTML='{{personName .Person}}<input type=\'hidden\' name=\'person_id\' value=\'{{.Person.ID}}\'>';sel.appendChild(h);document.getElementById('note-person-results').innerHTML='';}"
+  >
+    <div class="grid">
+      <label>Type
+        <select name="type">
+          <option value="CONVERSATION">💬 Conversation</option>
+          <option value="HANGOUT">🤝 Hangout</option>
+          <option value="LIFE_EVENT">🎯 Life Event</option>
+        </select>
+      </label>
+      <label>Date <input type="date" name="date" value="{{.Today}}" required></label>
+    </div>
+    <label>Note <textarea name="content" required placeholder="What happened?"></textarea></label>
+    <div>
+      <strong>People involved</strong>
+      <div id="note-persons-selected">
+        <span data-person-chip="{{.Person.ID}}">
+          {{personName .Person}}<input type="hidden" name="person_id" value="{{.Person.ID}}">
+        </span>
+      </div>
+      <input type="search" placeholder="Add another person…"
+        hx-get="/persons?link_rel=note"
+        hx-trigger="input delay:300ms"
+        hx-target="#note-person-results"
+        hx-swap="innerHTML">
+      <div id="note-person-results"></div>
+    </div>
+    <button type="submit">Add to Timeline</button>
+  </form>
+  <script>
+  function addNotePersonCreate(id, name) {
+    var c = document.getElementById('note-persons-selected');
+    if (c.querySelector('[data-person-chip="'+id+'"]')) return;
+    var s = document.createElement('span');
+    s.setAttribute('data-person-chip', id);
+    s.innerHTML = name
+      + ' <input type="hidden" name="person_id" value="'+id+'">'
+      + '<button type="button" onclick="this.closest(\'[data-person-chip]\').remove()">×</button>';
+    c.appendChild(s);
+  }
+  </script>
+  <table>
+    <thead><tr><th>Type</th><th>Date</th><th>Note</th><th>Also with</th><th></th></tr></thead>
+    <tbody id="notes-list">
+      {{range .Notes}}{{template "note-row" (noteRow . $.Person.ID)}}{{end}}
+    </tbody>
+  </table>
+</article>
+
 <p style="margin-top:2rem;"><a href="/persons">← Back to People</a></p>
 
 {{template "layout-foot" .}}

@@ -1,0 +1,20 @@
+{{define "note-row"}}
+<tr data-note-row>
+  <td>{{noteIcon .Note.Type}} {{noteLabel .Note.Type}}</td>
+  <td>{{fmtDate .Note.Date}}</td>
+  <td>{{.Note.Content}}</td>
+  <td>
+    {{$others := notePersonsExcept .Note.Persons .CurrentPersonID}}
+    {{range $i, $p := $others}}{{if $i}}, {{end}}<a href="/persons/{{$p.ID}}">{{personName $p}}</a>{{end}}
+  </td>
+  <td>
+    <button hx-get="/notes/{{.Note.ID}}/edit?person_id={{.CurrentPersonID}}"
+            hx-target="closest [data-note-row]" hx-swap="outerHTML"
+            class="outline secondary">Edit</button>
+    <button hx-delete="/notes/{{.Note.ID}}"
+            hx-confirm="Delete this note?"
+            hx-target="closest [data-note-row]" hx-swap="outerHTML"
+            class="outline secondary">Delete</button>
+  </td>
+</tr>
+{{end}}
