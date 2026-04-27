@@ -551,3 +551,142 @@ func TestBackup_ReturnsDatabase(t *testing.T) {
 	assert.True(t, w.Body.Len() > 0, "backup response should not be empty")
 	assert.Contains(t, w.Body.String(), "SQLite format 3", "backup should start with SQLite magic header")
 }
+
+// -- Notes API tests --
+
+func TestAPIListNotes_empty(t *testing.T) {
+	s := newTestServer(t)
+	w := doAPIJSON(t, s, http.MethodGet, "/api/notes", nil)
+	assert.Equal(t, http.StatusOK, w.Code)
+	var resp map[string]any
+	require.NoError(t, json.NewDecoder(w.Body).Decode(&resp))
+	results, _ := resp["results"].([]any)
+	assert.NotNil(t, results)
+	assert.Len(t, results, 0)
+}
+
+func TestAPICreateNote_and_ListByPerson(t *testing.T) {
+	sqlDB, err := db.Open(":memory:")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = sqlDB.Close() })
+	personID := createTestPerson(t, sqlDB, "Alice Note")
+	s, err := web.NewServer(dal.New(sqlDB, ":memory:"))
+	require.NoError(t, err)
+
+	wc := doAPIJSON(t, s, http.MethodPost, "/api/notes", map[string]any{
+		"type":       "CONVERSATION",
+		"date":       "2026-04-26",
+		"content":    "Caught up over coffee.",
+		"person_ids": []string{personID},
+	})
+	assert.Equal(t, http.StatusCreated, wc.Code)
+	var created map[string]any
+	require.NoError(t, json.NewDecoder(wc.Body).Decode(&created))
+	assert.Equal(t, "CONVERSATION", created["type"])
+	assert.Equal(t, "2026-04-26", created["date"])
+	noteID, _ := created["id"].(string)
+	require.NotEmpty(t, noteID)
+
+	w2 := doAPIJSON(t, s, http.MethodGet, "/api/persons/"+personID+"/notes", nil)
+	assert.Equal(t, http.StatusOK, w2.Code)
+	var resp map[string]any
+	require.NoError(t, json.NewDecoder(w2.Body).Decode(&resp))
+	results, _ := resp["results"].([]any)
+	assert.Len(t, results, 1)
+}
+
+func TestAPICreateNote_invalidType(t *testing.T) {
+	sqlDB, err := db.Open(":memory:")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = sqlDB.Close() })
+	personID := createTestPerson(t, sqlDB, "Bob Note")
+	s, err := web.NewServer(dal.New(sqlDB, ":memory:"))
+	require.NoError(t, err)
+
+	w := doAPIJSON(t, s, http.MethodPost, "/api/notes", map[string]any{
+		"type":       "INVALID",
+		"date":       "2026-04-26",
+		"content":    "test",
+		"person_ids": []string{personID},
+	})
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestAPIUpdateNote(t *testing.T) {
+	sqlDB, err := db.Open(":memory:")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = sqlDB.Close() })
+	personID := createTestPerson(t, sqlDB, "Carol Note")
+	s, err := web.NewServer(dal.New(sqlDB, ":memory:"))
+	require.NoError(t, err)
+
+	wc := doAPIJSON(t, s, http.MethodPost, "/api/notes", map[string]any{
+		"type":       "HANGOUT",
+		"date":       "2026-04-26",
+		"content":    "original",
+		"person_ids": []string{personID},
+	})
+	require.Equal(t, http.StatusCreated, wc.Code)
+	var created map[string]any
+	require.NoError(t, json.NewDecoder(wc.Body).Decode(&created))
+	noteID := created["id"].(string)
+
+	wu := doAPIJSON(t, s, http.MethodPut, "/api/notes/"+noteID, map[string]any{
+		"type":       "LIFE_EVENT",
+		"date":       "2026-04-27",
+		"content":    "updated",
+		"person_ids": []string{personID},
+	})
+	assert.Equal(t, http.StatusOK, wu.Code)
+	var updated map[string]any
+	require.NoError(t, json.NewDecoder(wu.Body).Decode(&updated))
+	assert.Equal(t, "LIFE_EVENT", updated["type"])
+	assert.Equal(t, "updated", updated["content"])
+}
+
+func TestAPIUpdateNote_notFound(t *testing.T) {
+	sqlDB, err := db.Open(":memory:")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = sqlDB.Close() })
+	personID := createTestPerson(t, sqlDB, "Dave NotFound")
+	s, err := web.NewServer(dal.New(sqlDB, ":memory:"))
+	require.NoError(t, err)
+
+	w := doAPIJSON(t, s, http.MethodPut, "/api/notes/NOTEXIST", map[string]any{
+		"type":       "HANGOUT",
+		"date":       "2026-04-26",
+		"content":    "x",
+		"person_ids": []string{personID},
+	})
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestAPIDeleteNote(t *testing.T) {
+	sqlDB, err := db.Open(":memory:")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = sqlDB.Close() })
+	personID := createTestPerson(t, sqlDB, "Eve Delete")
+	s, err := web.NewServer(dal.New(sqlDB, ":memory:"))
+	require.NoError(t, err)
+
+	wc := doAPIJSON(t, s, http.MethodPost, "/api/notes", map[string]any{
+		"type":       "CONVERSATION",
+		"date":       "2026-04-26",
+		"content":    "to delete",
+		"person_ids": []string{personID},
+	})
+	require.Equal(t, http.StatusCreated, wc.Code)
+	var created map[string]any
+	require.NoError(t, json.NewDecoder(wc.Body).Decode(&created))
+	noteID := created["id"].(string)
+
+	wd := doAPIJSON(t, s, http.MethodDelete, "/api/notes/"+noteID, nil)
+	assert.Equal(t, http.StatusNoContent, wd.Code)
+
+	wl := doAPIJSON(t, s, http.MethodGet, "/api/notes", nil)
+	require.Equal(t, http.StatusOK, wl.Code)
+	var resp map[string]any
+	require.NoError(t, json.NewDecoder(wl.Body).Decode(&resp))
+	results, _ := resp["results"].([]any)
+	assert.Len(t, results, 0)
+}
