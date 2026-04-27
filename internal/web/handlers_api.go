@@ -309,3 +309,135 @@ func (s *Server) handleAPIDeleteRelationship(w http.ResponseWriter, r *http.Requ
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
+
+// -- Notes API --
+
+type createNoteRequest struct {
+	Type      string   `json:"type"`
+	Date      string   `json:"date"`
+	Content   string   `json:"content"`
+	PersonIDs []string `json:"person_ids"`
+}
+
+type listNotesResponse struct {
+	Results []dal.NoteWithPersons `json:"results"`
+}
+
+func (s *Server) handleAPIListNotes(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	var notes []dal.NoteWithPersons
+	err := s.dal.WithTx(ctx, func(q *dal.Queries) error {
+		var e error
+		notes, e = q.ListAllNotes(ctx)
+		return e
+	})
+	if err != nil {
+		apiError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if notes == nil {
+		notes = []dal.NoteWithPersons{}
+	}
+	apiJSON(w, http.StatusOK, listNotesResponse{Results: notes})
+}
+
+func (s *Server) handleAPIListNotesForPerson(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	personID := chi.URLParam(r, "id")
+	var notes []dal.NoteWithPersons
+	err := s.dal.WithTx(ctx, func(q *dal.Queries) error {
+		var e error
+		notes, e = q.ListNotesForPerson(ctx, personID)
+		return e
+	})
+	if err != nil {
+		apiError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if notes == nil {
+		notes = []dal.NoteWithPersons{}
+	}
+	apiJSON(w, http.StatusOK, listNotesResponse{Results: notes})
+}
+
+func (s *Server) handleAPICreateNote(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	var req createNoteRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		apiError(w, http.StatusBadRequest, "invalid JSON: "+err.Error())
+		return
+	}
+	var note dal.NoteWithPersons
+	err := s.dal.WithTx(ctx, func(q *dal.Queries) error {
+		var e error
+		note, e = q.CreateNote(ctx, dal.CreateNoteParams{
+			Type:      req.Type,
+			Date:      req.Date,
+			Content:   req.Content,
+			PersonIDs: req.PersonIDs,
+		})
+		return e
+	})
+	if err != nil {
+		apiError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	apiJSON(w, http.StatusCreated, note)
+}
+
+func (s *Server) handleAPIUpdateNote(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	nid := chi.URLParam(r, "nid")
+	var req createNoteRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		apiError(w, http.StatusBadRequest, "invalid JSON: "+err.Error())
+		return
+	}
+	var note dal.NoteWithPersons
+	err := s.dal.WithTx(ctx, func(q *dal.Queries) error {
+		if _, err := q.GetNote(ctx, nid); err != nil {
+			return err
+		}
+		if err := q.UpdateNote(ctx, dal.UpdateNoteParams{
+			ID:        nid,
+			Type:      req.Type,
+			Date:      req.Date,
+			Content:   req.Content,
+			PersonIDs: req.PersonIDs,
+		}); err != nil {
+			return err
+		}
+		var e error
+		note, e = q.GetNote(ctx, nid)
+		return e
+	})
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			apiError(w, http.StatusNotFound, "note not found")
+			return
+		}
+		apiError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	apiJSON(w, http.StatusOK, note)
+}
+
+func (s *Server) handleAPIDeleteNote(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	nid := chi.URLParam(r, "nid")
+	err := s.dal.WithTx(ctx, func(q *dal.Queries) error {
+		if _, err := q.GetNote(ctx, nid); err != nil {
+			return err
+		}
+		return q.DeleteNote(ctx, nid)
+	})
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			apiError(w, http.StatusNotFound, "note not found")
+			return
+		}
+		apiError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}

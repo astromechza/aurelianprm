@@ -218,6 +218,11 @@ func (s *Server) handlePersonsDetail(w http.ResponseWriter, r *http.Request) {
 			}
 			view.People = append(view.People, section)
 		}
+		notes, err := q.ListNotesForPerson(ctx, id)
+		if err != nil {
+			return err
+		}
+		view.Notes = notes
 		return nil
 	})
 	if err != nil {
@@ -228,6 +233,7 @@ func (s *Server) handlePersonsDetail(w http.ResponseWriter, r *http.Request) {
 		s.serverError(w, r, err)
 		return
 	}
+	view.Today = time.Now().Format("2006-01-02")
 	s.render(w, "persons-detail", view)
 }
 
