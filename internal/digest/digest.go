@@ -26,6 +26,7 @@ type Config struct {
 	SMTPFrom string
 	SMTPSSL  bool // true = implicit TLS (port 465); false = STARTTLS mandatory (port 587)
 	DigestTo string
+	Force    bool // if true, send even when there are no reminders
 }
 
 // senderFunc delivers a composed message. Injected in tests to avoid live SMTP.
@@ -68,7 +69,7 @@ func sendDigest(ctx context.Context, d *dal.DAL, cfg Config, now time.Time, send
 	}
 
 	reminders := FindReminders(persons, now)
-	if len(reminders) == 0 {
+	if len(reminders) == 0 && !cfg.Force {
 		return nil // nothing to send
 	}
 

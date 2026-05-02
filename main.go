@@ -62,6 +62,7 @@ func runServe() error {
 func runDigest() error {
 	fs := flag.NewFlagSet("send-digest", flag.ContinueOnError)
 	dbPath := fs.String("db", "aurelianprm.db", "path to SQLite database file")
+	force := fs.Bool("force", false, "send digest even when there are no reminders")
 	if err := fs.Parse(os.Args[2:]); err != nil {
 		return err
 	}
@@ -77,6 +78,7 @@ func runDigest() error {
 	}
 	defer sqlDB.Close() //nolint:errcheck
 
+	cfg.Force = *force
 	return digest.SendDigest(context.Background(), dal.New(sqlDB, *dbPath), cfg)
 }
 
