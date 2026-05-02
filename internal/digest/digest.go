@@ -3,6 +3,7 @@ package digest
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"sort"
 	"strings"
 	"time"
@@ -69,13 +70,20 @@ func sendDigest(ctx context.Context, d *dal.DAL, cfg Config, now time.Time, send
 	}
 
 	reminders := FindReminders(persons, now)
+	slog.Info("reminders found", "count", len(reminders))
 	if len(reminders) == 0 && !cfg.Force {
-		return nil // nothing to send
+		slog.Info("no reminders and --force not set, skipping email")
+		return nil
 	}
 
 	subject := fmt.Sprintf("Reminders for %s", now.Format("Mon 2 Jan 2006"))
 	body := composeBody(reminders)
-	return send(subject, body, cfg.SMTPFrom, cfg.DigestTo)
+	slog.Info("sending digest email", "to", cfg.DigestTo, "subject", subject)
+	if err := send(subject, body, cfg.SMTPFrom, cfg.DigestTo); err != nil {
+		return fmt.Errorf("send email: %w", err)
+	}
+	slog.Info("digest email sent successfully", "to", cfg.DigestTo)
+	return nil
 }
 
 // SendDigest is the public entry point. Loads persons from the database, finds

@@ -254,7 +254,7 @@ spec:
           containers:
             - name: digest
               image: ghcr.io/astromechza/aurelianprm:latest
-              args: ["send-digest", "--db", "/data/aurelianprm.db"]
+              command: ["aurelianprm", "send-digest", "--db", "/data/aurelianprm.db"]
               envFrom:
                 - secretRef:
                     name: aurelianprm-smtp
@@ -279,6 +279,7 @@ spec:
 ```sh
 # crontab entry — daily at 08:00
 0 8 * * * docker run --rm \
+  --entrypoint aurelianprm \
   --env-file /etc/aurelianprm/smtp.env \
   -v aurelianprm_data:/data \
   ghcr.io/astromechza/aurelianprm:latest \
