@@ -120,6 +120,94 @@ No live SMTP in tests.
 
 ---
 
+## Deployment
+
+### Recommended schedule
+
+Run once daily at 08:00 local time (`0 8 * * *`).
+
+### Docker / host cron
+
+```sh
+# crontab entry
+0 8 * * * docker run --rm \
+  --env-file /etc/aurelianprm/smtp.env \
+  -v aurelianprm_data:/data \
+  ghcr.io/astromechza/aurelianprm:latest \
+  send-digest --db /data/aurelianprm.db
+```
+
+`smtp.env` file (keep out of version control):
+```
+SMTP_HOST=smtp.fastmail.com
+SMTP_PORT=465
+SMTP_USER=you@fastmail.com
+SMTP_PASS=app-password
+SMTP_FROM=you@fastmail.com
+SMTP_SSL=true
+DIGEST_EMAIL_ADDRESS=you@example.com
+```
+
+### Kubernetes CronJob
+
+Store SMTP credentials in a Secret, mount the same PVC used by the StatefulSet:
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: aurelianprm-smtp
+stringData:
+  SMTP_HOST: smtp.fastmail.com
+  SMTP_PORT: "465"
+  SMTP_USER: you@fastmail.com
+  SMTP_PASS: app-password        # use a Fastmail app password
+  SMTP_FROM: you@fastmail.com
+  SMTP_SSL: "true"
+  DIGEST_EMAIL_ADDRESS: you@example.com
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: aurelianprm-digest
+spec:
+  schedule: "0 8 * * *"          # 08:00 UTC daily
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            runAsUser: 65532
+            runAsGroup: 65532
+          containers:
+            - name: digest
+              image: ghcr.io/astromechza/aurelianprm:latest
+              args: ["send-digest", "--db", "/data/aurelianprm.db"]
+              envFrom:
+                - secretRef:
+                    name: aurelianprm-smtp
+              volumeMounts:
+                - name: data
+                  mountPath: /data
+                  readOnly: true   # digest only reads the DB
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 32Mi
+                limits:
+                  memory: 64Mi
+          volumes:
+            - name: data
+              persistentVolumeClaim:
+                claimName: data-aurelianprm-0   # PVC created by the StatefulSet
+```
+
+The CronJob mounts the PVC read-only since `send-digest` only reads the database.
+
+---
+
 ## Extensibility
 
 To add a new reminder source in future (e.g. note-based follow-ups):
