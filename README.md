@@ -191,6 +191,102 @@ Add TLS via cert-manager or your ingress controller of choice. The app itself ha
 
 ---
 
+## Reminders digest
+
+The `send-digest` subcommand emails a plain-text digest of upcoming reminders (v1: birthdays in the next 7 days). No email is sent if there is nothing to report, unless `--force` is passed.
+
+```sh
+aurelianprm send-digest --db ./aurelianprm.db
+```
+
+### Environment variables
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `SMTP_HOST` | Yes | — | SMTP hostname (e.g. `smtp.fastmail.com`) |
+| `SMTP_PORT` | No | `587` | SMTP port |
+| `SMTP_USER` | Yes | — | SMTP username (full email address for Fastmail) |
+| `SMTP_PASS` | Yes | — | SMTP password. Use a Fastmail **app password**, not your account password. |
+| `SMTP_FROM` | Yes | — | Sender address |
+| `SMTP_SSL` | No | `false` | Set `true` for implicit TLS on port 465 (Fastmail recommended) |
+| `DIGEST_EMAIL_ADDRESS` | Yes | — | Recipient address |
+
+### Flags
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--db` | `aurelianprm.db` | Path to SQLite database file |
+| `--force` | `false` | Send even when there are no reminders |
+
+### Kubernetes CronJob
+
+Store credentials in a Secret and mount the same PVC used by the StatefulSet:
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: aurelianprm-smtp
+stringData:
+  SMTP_HOST: smtp.fastmail.com
+  SMTP_PORT: "465"
+  SMTP_USER: you@fastmail.com
+  SMTP_PASS: app-password
+  SMTP_FROM: you@fastmail.com
+  SMTP_SSL: "true"
+  DIGEST_EMAIL_ADDRESS: you@example.com
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: aurelianprm-digest
+spec:
+  schedule: "0 8 * * *"          # 08:00 UTC daily
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            runAsUser: 65532
+            runAsGroup: 65532
+          containers:
+            - name: digest
+              image: ghcr.io/astromechza/aurelianprm:latest
+              args: ["send-digest", "--db", "/data/aurelianprm.db"]
+              envFrom:
+                - secretRef:
+                    name: aurelianprm-smtp
+              volumeMounts:
+                - name: data
+                  mountPath: /data
+                  readOnly: true
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 32Mi
+                limits:
+                  memory: 64Mi
+          volumes:
+            - name: data
+              persistentVolumeClaim:
+                claimName: data-aurelianprm-0
+```
+
+### Docker cron
+
+```sh
+# crontab entry — daily at 08:00
+0 8 * * * docker run --rm \
+  --env-file /etc/aurelianprm/smtp.env \
+  -v aurelianprm_data:/data \
+  ghcr.io/astromechza/aurelianprm:latest \
+  send-digest --db /data/aurelianprm.db
+```
+
+---
+
 ## Backups
 
 The database is a single SQLite file. The container image does not include shell utilities or `sqlite3`, so **the recommended approach is the built-in HTTP backup endpoint**.
