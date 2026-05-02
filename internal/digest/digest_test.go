@@ -1,7 +1,6 @@
 package digest
 
 import (
-	"context"
 	"encoding/json"
 	"testing"
 	"time"
@@ -112,6 +111,77 @@ func TestFindBirthdayReminders_leapDay(t *testing.T) {
 	assert.Equal(t, "Leaper's birthday (turning 26)", got[0].Label)
 }
 
-// --- compile guards for Task 2 imports ---
-var _ = context.Background
-var _ = db.Open
+func TestFindReminders_sortedByDateThenLabel(t *testing.T) {
+	now := time.Date(2026, 4, 27, 10, 0, 0, 0, time.UTC)
+	persons := []dal.Entity{
+		makePerson("Zebra", 0, 5, 1),
+		makePerson("Apple", 0, 4, 28),
+		makePerson("Mango", 0, 4, 29),
+		makePerson("Berry", 0, 4, 29), // same day as Mango, sorts before alphabetically
+	}
+	got := FindReminders(persons, now)
+	require.Len(t, got, 4)
+	assert.Equal(t, "Apple's birthday", got[0].Label)
+	assert.Equal(t, "Berry's birthday", got[1].Label)
+	assert.Equal(t, "Mango's birthday", got[2].Label)
+	assert.Equal(t, "Zebra's birthday", got[3].Label)
+}
+
+func TestComposeBody(t *testing.T) {
+	reminders := []Reminder{
+		{Date: time.Date(2026, 4, 28, 0, 0, 0, 0, time.UTC), Label: "Alice's birthday"},
+		{Date: time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC), Label: "Bob's birthday (turning 30)"},
+	}
+	body := composeBody(reminders)
+	assert.Contains(t, body, "Upcoming reminders in the next 7 days:")
+	assert.Contains(t, body, "• Tue 28 Apr — Alice's birthday")
+	assert.Contains(t, body, "• Fri 1 May — Bob's birthday (turning 30)")
+}
+
+func TestSendDigest_noReminders_doesNotSend(t *testing.T) {
+	sqlDB, err := db.Open(":memory:")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = sqlDB.Close() })
+	d := dal.New(sqlDB, ":memory:")
+
+	sendCalled := false
+	err = sendDigest(t.Context(), d, Config{}, time.Now(), func(_, _, _, _ string) error {
+		sendCalled = true
+		return nil
+	})
+	require.NoError(t, err)
+	assert.False(t, sendCalled, "send must not be called when no reminders")
+}
+
+func TestSendDigest_withReminders_sendsEmail(t *testing.T) {
+	sqlDB, err := db.Open(":memory:")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = sqlDB.Close() })
+	d := dal.New(sqlDB, ":memory:")
+
+	now := time.Date(2026, 4, 27, 10, 0, 0, 0, time.UTC)
+
+	require.NoError(t, d.WithTx(t.Context(), func(q *dal.Queries) error {
+		data, _ := json.Marshal(map[string]any{
+			"name": "Alice", "birthMonth": 4, "birthDay": 27,
+		})
+		_, err := q.CreateEntity(t.Context(), dal.CreateEntityParams{
+			Type: "Person",
+			Data: data,
+		})
+		return err
+	}))
+
+	var gotSubject, gotBody, gotTo string
+	err = sendDigest(t.Context(), d, Config{SMTPFrom: "from@test.com", DigestTo: "to@test.com"}, now,
+		func(subject, body, _ string, to string) error {
+			gotSubject = subject
+			gotBody = body
+			gotTo = to
+			return nil
+		})
+	require.NoError(t, err)
+	assert.Equal(t, "Reminders for Mon 27 Apr 2026", gotSubject)
+	assert.Contains(t, gotBody, "Alice's birthday")
+	assert.Equal(t, "to@test.com", gotTo)
+}

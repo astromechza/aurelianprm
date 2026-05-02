@@ -1,3 +1,5 @@
+// Package digest generates and sends email digests for upcoming reminders
+// (birthdays and other scheduled events) derived from the stored entity data.
 package digest
 
 import (
@@ -30,6 +32,9 @@ func findBirthdayReminders(persons []dal.Entity, now time.Time) []Reminder {
 			continue
 		}
 		if pd.BirthMonth == 0 || pd.BirthDay == 0 {
+			continue
+		}
+		if pd.Name == "" {
 			continue
 		}
 		// Try this year then next year; take the first candidate that falls in window.
