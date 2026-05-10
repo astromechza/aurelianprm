@@ -13,6 +13,12 @@ func TestValidateEntity_valid(t *testing.T) {
 	require.NoError(t, schema.ValidateEntity("Person", data))
 }
 
+func TestValidateEntity_todoField(t *testing.T) {
+	require.NoError(t, schema.ValidateEntity("Person", json.RawMessage(`{"name":"X","todo":true}`)))
+	require.NoError(t, schema.ValidateEntity("Person", json.RawMessage(`{"name":"X","todo":false}`)))
+	require.Error(t, schema.ValidateEntity("Person", json.RawMessage(`{"name":"X","todo":"yes"}`)))
+}
+
 func TestValidateEntity_missingRequired(t *testing.T) {
 	data := json.RawMessage(`{}`) // missing required name
 	err := schema.ValidateEntity("Person", data)
