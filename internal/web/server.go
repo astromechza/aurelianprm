@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"runtime/debug"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -23,9 +24,18 @@ type Server struct {
 	tmpl *template.Template
 }
 
+func buildVersion() string {
+	if info, ok := debug.ReadBuildInfo(); ok && info.Main.Version != "" && info.Main.Version != "(devel)" {
+		return info.Main.Version
+	}
+	return "dev"
+}
+
 // NewServer constructs a Server, parsing all embedded templates.
 func NewServer(d *dal.DAL) (*Server, error) {
+	version := buildVersion()
 	funcs := template.FuncMap{
+		"appVersion": func() string { return version },
 		"personName": func(e dal.Entity) string {
 			var data struct {
 				Name string `json:"name"`
