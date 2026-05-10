@@ -24,7 +24,13 @@ type Server struct {
 	tmpl *template.Template
 }
 
+// Version may be set at build time via -ldflags "-X github.com/astromechza/aurelianprm/internal/web.Version=x.y.z".
+var Version string
+
 func buildVersion() string {
+	if Version != "" {
+		return Version
+	}
 	if info, ok := debug.ReadBuildInfo(); ok && info.Main.Version != "" && info.Main.Version != "(devel)" {
 		return info.Main.Version
 	}
