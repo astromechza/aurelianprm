@@ -15,6 +15,7 @@ type PersonListItem struct {
 	BirthMonth   int
 	BirthDay     int
 	BirthdaySoon bool // birthday within ±7 days of today
+	Todo         bool
 }
 
 // PersonListView is the view model for the persons list page.
@@ -33,6 +34,7 @@ type PersonData struct {
 	BirthMonth int    `json:"birthMonth"`
 	BirthDay   int    `json:"birthDay"`
 	Note       string `json:"note"`
+	Todo       bool   `json:"todo"`
 }
 
 // EntityWithRel pairs a contact entity with its connecting relationship and decoded data.

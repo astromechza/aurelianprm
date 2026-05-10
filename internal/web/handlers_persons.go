@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"sort"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -16,6 +17,7 @@ import (
 func (s *Server) handlePersonsList(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	q := r.URL.Query().Get("q")
+	linkRel := r.URL.Query().Get("link_rel")
 
 	var persons, allPersons []dal.Entity
 	err := s.dal.WithTx(ctx, func(queries *dal.Queries) error {
@@ -66,12 +68,18 @@ func (s *Server) handlePersonsList(w http.ResponseWriter, r *http.Request) {
 			BirthMonth:   pd.BirthMonth,
 			BirthDay:     pd.BirthDay,
 			BirthdaySoon: birthdaySoon,
+			Todo:         pd.Todo,
 		}
 	}
 
 	items := make([]PersonListItem, 0, len(persons))
 	for _, e := range persons {
 		items = append(items, toListItem(e))
+	}
+	if q == "" && linkRel == "" {
+		sort.SliceStable(items, func(i, j int) bool {
+			return items[i].Todo && !items[j].Todo
+		})
 	}
 
 	var upcoming []PersonListItem
@@ -82,7 +90,6 @@ func (s *Server) handlePersonsList(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	linkRel := r.URL.Query().Get("link_rel")
 	view := PersonListView{Query: q, LinkRel: linkRel, Persons: items, UpcomingBirthdays: upcoming}
 
 	if isHTMX(r) {
@@ -128,6 +135,9 @@ func (s *Server) handlePersonsCreate(w http.ResponseWriter, r *http.Request) {
 	addIntField(data, "birthYear", r.FormValue("birthYear"))
 	addIntField(data, "birthMonth", r.FormValue("birthMonth"))
 	addIntField(data, "birthDay", r.FormValue("birthDay"))
+	if r.FormValue("todo") == "on" {
+		data["todo"] = true
+	}
 
 	raw, err := json.Marshal(data)
 	if err != nil {
@@ -261,6 +271,9 @@ func (s *Server) handlePersonsUpdate(w http.ResponseWriter, r *http.Request) {
 	addIntField(data, "birthYear", r.FormValue("birthYear"))
 	addIntField(data, "birthMonth", r.FormValue("birthMonth"))
 	addIntField(data, "birthDay", r.FormValue("birthDay"))
+	if r.FormValue("todo") == "on" {
+		data["todo"] = true
+	}
 
 	raw, err := json.Marshal(data)
 	if err != nil {

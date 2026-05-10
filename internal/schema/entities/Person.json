@@ -10,7 +10,8 @@
     "birthYear":  { "type": "integer", "minimum": 1, "maximum": 9999 },
     "birthMonth": { "type": "integer", "minimum": 1, "maximum": 12 },
     "birthDay":   { "type": "integer", "minimum": 1, "maximum": 31 },
-    "note":       { "type": "string" }
+    "note":       { "type": "string" },
+    "todo":       { "type": "boolean" }
   },
   "required": ["name"],
   "additionalProperties": false
