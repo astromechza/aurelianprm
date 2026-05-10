@@ -4,18 +4,8 @@
   <td>{{.Name}}</td>
   <td>{{.NickName}}</td>
   <td>{{$bd := fmtBirthDate .BirthYear .BirthMonth .BirthDay}}{{if $bd}}{{$bd}}{{else}}<em>unknown</em>{{end}}</td>
-  <td>
-    <button
-      onclick="event.stopPropagation()"
-      hx-delete="/persons/{{.ID}}"
-      hx-confirm="Delete {{.Name}}? This cannot be undone."
-      hx-target="closest tr"
-      hx-swap="outerHTML"
-      class="secondary outline"
-    >Delete</button>
-  </td>
 </tr>
 {{else}}
-<tr><td colspan="4"><em>No results.</em></td></tr>
+<tr><td colspan="3"><em>No results.</em></td></tr>
 {{end}}
 {{end}}

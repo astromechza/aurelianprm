@@ -64,6 +64,16 @@ func doMethod(t *testing.T, s *web.Server, method, path, body string) *httptest.
 	return w
 }
 
+func doMethodHX(t *testing.T, s *web.Server, method, path, body string) *httptest.ResponseRecorder {
+	t.Helper()
+	req := httptest.NewRequestWithContext(t.Context(), method, path, strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("HX-Request", "true")
+	w := httptest.NewRecorder()
+	s.Handler().ServeHTTP(w, req)
+	return w
+}
+
 func doAPIJSON(t *testing.T, s *web.Server, method, path string, body any) *httptest.ResponseRecorder {
 	t.Helper()
 	var b []byte
@@ -186,7 +196,10 @@ func TestPersonsDetail_Returns200(t *testing.T) {
 
 	w := doGet(t, s, "/persons/"+id)
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Contains(t, w.Body.String(), "Carol Detail")
+	body := w.Body.String()
+	assert.Contains(t, body, "Carol Detail")
+	assert.Contains(t, body, `hx-delete="/persons/`+id+`"`)
+	assert.Contains(t, body, "cannot be undone")
 }
 
 func TestPersonsDetail_NotFound(t *testing.T) {
@@ -218,6 +231,20 @@ func TestPersonsDelete_Redirects(t *testing.T) {
 	w := doMethod(t, s, http.MethodDelete, "/persons/"+id, "")
 	assert.Equal(t, http.StatusSeeOther, w.Code)
 	assert.Equal(t, "/persons", w.Header().Get("Location"))
+}
+
+func TestPersonsDelete_HTMX_SetsRedirectHeader(t *testing.T) {
+	sqlDB, err := db.Open(":memory:")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = sqlDB.Close() })
+	id := createTestPerson(t, sqlDB, "Frank HTMX Delete")
+	s, err := web.NewServer(dal.New(sqlDB, ":memory:"))
+	require.NoError(t, err)
+
+	w := doMethodHX(t, s, http.MethodDelete, "/persons/"+id, "")
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "/persons", w.Header().Get("HX-Redirect"))
+	assert.Empty(t, w.Header().Get("Location"))
 }
 
 func TestEntitiesCreate_ReturnsPartial(t *testing.T) {

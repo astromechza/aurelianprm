@@ -10,12 +10,19 @@
         </h2>
         {{$bd := fmtBirthDate .PersonData.BirthYear .PersonData.BirthMonth .PersonData.BirthDay}}{{if $bd}}<small>Born: {{$bd}}</small>{{end}}
       </div>
-      <button
-        hx-get="/persons/{{.Person.ID}}/edit-form"
-        hx-target="#person-header"
-        hx-swap="outerHTML"
-        class="outline secondary"
-      >Edit</button>
+      <div style="display:flex;gap:0.5rem;">
+        <button
+          hx-get="/persons/{{.Person.ID}}/edit-form"
+          hx-target="#person-header"
+          hx-swap="outerHTML"
+          class="outline secondary"
+        >Edit</button>
+        <button
+          hx-delete="/persons/{{.Person.ID}}"
+          hx-confirm="Delete {{.PersonData.Name}}? This cannot be undone."
+          class="outline secondary"
+        >Delete</button>
+      </div>
     </div>
     {{if .PersonData.Note}}<p>{{.PersonData.Note}}</p>{{end}}
   </header>
