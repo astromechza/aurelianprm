@@ -43,17 +43,21 @@ No DB migration needed. Existing rows without the key are treated as `false`.
 
 ### 4. Templates
 
-**`persons_create.html`** and **`partials/person_edit_form.html`:**
+**`persons_create.html`:** plain checkbox (view model is `nil` at render time):
+```html
+<label>
+  <input type="checkbox" name="todo">
+  Flag as TODO (needs revisiting)
+</label>
+```
 
-Add checkbox field:
+**`partials/person_edit_form.html`:** checkbox pre-checked from existing data:
 ```html
 <label>
   <input type="checkbox" name="todo" {{if .PersonData.Todo}}checked{{end}}>
   Flag as TODO (needs revisiting)
 </label>
 ```
-
-Create form has no pre-existing data so `checked` is never set by default.
 
 **`partials/persons_rows.html`:**
 
