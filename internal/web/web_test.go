@@ -723,3 +723,75 @@ func TestAPIDeleteNote(t *testing.T) {
 	results, _ := resp["results"].([]any)
 	assert.Len(t, results, 0)
 }
+
+func TestPersonsCreate_WithTodo_ShowsIconInList(t *testing.T) {
+	s := newTestServer(t)
+	w := doPost(t, s, "/persons", "name=Flagged+Person&todo=on")
+	require.Equal(t, http.StatusSeeOther, w.Code)
+
+	w2 := doGet(t, s, "/persons")
+	assert.Equal(t, http.StatusOK, w2.Code)
+	assert.Contains(t, w2.Body.String(), "⚑")
+}
+
+func TestPersonsUpdate_ClearsTodoWhenUnchecked(t *testing.T) {
+	sqlDB, err := db.Open(":memory:")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = sqlDB.Close() })
+	id := createTestPerson(t, sqlDB, "Clear Todo Person")
+	s, err := web.NewServer(dal.New(sqlDB, ":memory:"))
+	require.NoError(t, err)
+
+	// Set todo flag
+	w := doMethod(t, s, http.MethodPut, "/persons/"+id, "name=Clear+Todo+Person&todo=on")
+	require.Equal(t, http.StatusSeeOther, w.Code)
+
+	// Clear todo flag (no todo field in form body = unchecked)
+	w2 := doMethod(t, s, http.MethodPut, "/persons/"+id, "name=Clear+Todo+Person")
+	require.Equal(t, http.StatusSeeOther, w2.Code)
+
+	w3 := doGet(t, s, "/persons")
+	assert.Equal(t, http.StatusOK, w3.Code)
+	assert.NotContains(t, w3.Body.String(), "⚑")
+}
+
+func TestPersonsList_TodoPersonsAppearFirst(t *testing.T) {
+	s := newTestServer(t)
+
+	// "Alice Normal" — no todo flag, alphabetically first
+	w1 := doPost(t, s, "/persons", "name=Alice+Normal")
+	require.Equal(t, http.StatusSeeOther, w1.Code)
+
+	// "Zara Todo" — todo flag, alphabetically last
+	w2 := doPost(t, s, "/persons", "name=Zara+Todo&todo=on")
+	require.Equal(t, http.StatusSeeOther, w2.Code)
+
+	w3 := doGet(t, s, "/persons")
+	require.Equal(t, http.StatusOK, w3.Code)
+	body := w3.Body.String()
+	zaraIdx := strings.Index(body, "Zara Todo")
+	aliceIdx := strings.Index(body, "Alice Normal")
+	assert.NotEqual(t, -1, zaraIdx)
+	assert.NotEqual(t, -1, aliceIdx)
+	assert.Less(t, zaraIdx, aliceIdx, "todo-flagged person must appear before non-flagged person")
+}
+
+func TestPersonsNew_ContainsTodoCheckbox(t *testing.T) {
+	s := newTestServer(t)
+	w := doGet(t, s, "/persons/new")
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), `name="todo"`)
+}
+
+func TestPersonsEditForm_TodoCheckboxChecked(t *testing.T) {
+	s := newTestServer(t)
+	// Create with todo
+	w1 := doPost(t, s, "/persons", "name=Checked+Person&todo=on")
+	require.Equal(t, http.StatusSeeOther, w1.Code)
+	id := strings.TrimPrefix(w1.Header().Get("Location"), "/persons/")
+
+	w2 := doGetHX(t, s, "/persons/"+id+"/edit-form")
+	assert.Equal(t, http.StatusOK, w2.Code)
+	assert.Contains(t, w2.Body.String(), `name="todo"`)
+	assert.Contains(t, w2.Body.String(), `checked`)
+}

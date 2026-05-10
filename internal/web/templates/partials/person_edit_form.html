@@ -33,6 +33,10 @@
       Note
       <textarea name="note">{{.PersonData.Note}}</textarea>
     </label>
+    <label>
+      <input type="checkbox" name="todo"{{if .PersonData.Todo}} checked{{end}}>
+      Flag as TODO (needs revisiting)
+    </label>
     <div style="display:flex;gap:1rem;">
       <button type="submit">Save</button>
       <button

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"sort"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -66,6 +67,7 @@ func (s *Server) handlePersonsList(w http.ResponseWriter, r *http.Request) {
 			BirthMonth:   pd.BirthMonth,
 			BirthDay:     pd.BirthDay,
 			BirthdaySoon: birthdaySoon,
+			Todo:         pd.Todo,
 		}
 	}
 
@@ -73,6 +75,9 @@ func (s *Server) handlePersonsList(w http.ResponseWriter, r *http.Request) {
 	for _, e := range persons {
 		items = append(items, toListItem(e))
 	}
+	sort.SliceStable(items, func(i, j int) bool {
+		return items[i].Todo && !items[j].Todo
+	})
 
 	var upcoming []PersonListItem
 	for _, e := range allPersons {
@@ -128,6 +133,9 @@ func (s *Server) handlePersonsCreate(w http.ResponseWriter, r *http.Request) {
 	addIntField(data, "birthYear", r.FormValue("birthYear"))
 	addIntField(data, "birthMonth", r.FormValue("birthMonth"))
 	addIntField(data, "birthDay", r.FormValue("birthDay"))
+	if r.FormValue("todo") == "on" {
+		data["todo"] = true
+	}
 
 	raw, err := json.Marshal(data)
 	if err != nil {
@@ -261,6 +269,9 @@ func (s *Server) handlePersonsUpdate(w http.ResponseWriter, r *http.Request) {
 	addIntField(data, "birthYear", r.FormValue("birthYear"))
 	addIntField(data, "birthMonth", r.FormValue("birthMonth"))
 	addIntField(data, "birthDay", r.FormValue("birthDay"))
+	if r.FormValue("todo") == "on" {
+		data["todo"] = true
+	}
 
 	raw, err := json.Marshal(data)
 	if err != nil {

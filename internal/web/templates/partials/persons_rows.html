@@ -1,7 +1,7 @@
 {{define "persons-rows"}}
 {{range .Persons}}
 <tr onclick="window.location='/persons/{{.ID}}'" style="cursor:pointer;">
-  <td>{{.Name}}{{if .NickName}} ({{.NickName}}){{end}}</td>
+  <td>{{if .Todo}}⚑ {{end}}{{.Name}}{{if .NickName}} ({{.NickName}}){{end}}</td>
   <td>{{$bd := fmtBirthDate .BirthYear .BirthMonth .BirthDay}}{{if $bd}}{{$bd}}{{else}}<em>unknown</em>{{end}}</td>
 </tr>
 {{else}}
