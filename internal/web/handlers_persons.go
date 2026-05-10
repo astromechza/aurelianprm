@@ -17,6 +17,7 @@ import (
 func (s *Server) handlePersonsList(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	q := r.URL.Query().Get("q")
+	linkRel := r.URL.Query().Get("link_rel")
 
 	var persons, allPersons []dal.Entity
 	err := s.dal.WithTx(ctx, func(queries *dal.Queries) error {
@@ -75,9 +76,11 @@ func (s *Server) handlePersonsList(w http.ResponseWriter, r *http.Request) {
 	for _, e := range persons {
 		items = append(items, toListItem(e))
 	}
-	sort.SliceStable(items, func(i, j int) bool {
-		return items[i].Todo && !items[j].Todo
-	})
+	if q == "" && linkRel == "" {
+		sort.SliceStable(items, func(i, j int) bool {
+			return items[i].Todo && !items[j].Todo
+		})
+	}
 
 	var upcoming []PersonListItem
 	for _, e := range allPersons {
@@ -87,7 +90,6 @@ func (s *Server) handlePersonsList(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	linkRel := r.URL.Query().Get("link_rel")
 	view := PersonListView{Query: q, LinkRel: linkRel, Persons: items, UpcomingBirthdays: upcoming}
 
 	if isHTMX(r) {
