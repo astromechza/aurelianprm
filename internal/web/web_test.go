@@ -792,6 +792,5 @@ func TestPersonsEditForm_TodoCheckboxChecked(t *testing.T) {
 
 	w2 := doGetHX(t, s, "/persons/"+id+"/edit-form")
 	assert.Equal(t, http.StatusOK, w2.Code)
-	assert.Contains(t, w2.Body.String(), `name="todo"`)
-	assert.Contains(t, w2.Body.String(), `checked`)
+	assert.Contains(t, w2.Body.String(), `name="todo" checked`)
 }
