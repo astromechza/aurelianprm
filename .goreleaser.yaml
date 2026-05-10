@@ -20,7 +20,7 @@ builds:
       - amd64
       - arm64
     ldflags:
-      - -s -w
+      - -s -w -X github.com/astromechza/aurelianprm/internal/web.Version={{.Version}}
 
 archives:
   - formats: [tar.gz]
