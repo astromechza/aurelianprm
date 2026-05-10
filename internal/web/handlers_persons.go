@@ -289,6 +289,7 @@ func (s *Server) handlePersonsDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if isHTMX(r) {
+		w.Header().Set("HX-Redirect", "/persons")
 		w.WriteHeader(http.StatusOK)
 		return
 	}
