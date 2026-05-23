@@ -163,10 +163,11 @@ func runServe(args []string) error {
 	sched := reminder.NewScheduler(reminder.Config{
 		DB: sqlDB,
 		SendFunc: func(subject, body string) error {
-			return mailer.Send(cfg.SMTP, cfg.ReminderEmail, subject, body)
+			return mailer.SendHTML(cfg.SMTP, cfg.ReminderEmail, subject, body)
 		},
-		SendTime: cfg.ReminderSendTime,
-		Timezone: cfg.ReminderTimezone,
+		SendTime:    cfg.ReminderSendTime,
+		Timezone:    cfg.ReminderTimezone,
+		ExternalURL: cfg.ExternalURL,
 	})
 	go func() {
 		if err := sched.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {

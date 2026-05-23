@@ -15,13 +15,13 @@ func TestFormatDigest_SingleDay(t *testing.T) {
 		{
 			Date: sendDate,
 			Items: []reminder.Item{
-				{Label: "Alice Smith \u2014 birthday", OccursOn: time.Date(2026, 6, 15, 0, 0, 0, 0, time.UTC)},
+				{Label: "Alice Smith \u2014 birthday", OccursOn: time.Date(2026, 6, 15, 0, 0, 0, 0, time.UTC), PersonID: "abc123"},
 				{Label: "Bob Jones \u2014 birthday", OccursOn: time.Date(2026, 6, 14, 0, 0, 0, 0, time.UTC)},
 			},
 		},
 	}
 
-	body := reminder.FormatDigest(sendDate, days)
+	body := reminder.FormatDigest(sendDate, days, "https://prm.example.com")
 
 	assert.Contains(t, body, "13 June 2026")
 	assert.Contains(t, body, "Alice Smith \u2014 birthday")
@@ -29,6 +29,8 @@ func TestFormatDigest_SingleDay(t *testing.T) {
 	assert.Contains(t, body, "Bob Jones \u2014 birthday")
 	assert.Contains(t, body, "tomorrow")    // June 14 is tomorrow
 	assert.NotContains(t, body, "Catch-up") // single day, no catch-up
+	assert.Contains(t, body, `href="https://prm.example.com/people/abc123"`)
+	assert.NotContains(t, body, `href="https://prm.example.com/people/"`) // Bob has no PersonID
 }
 
 func TestFormatDigest_CatchUp(t *testing.T) {
@@ -50,7 +52,7 @@ func TestFormatDigest_CatchUp(t *testing.T) {
 		},
 	}
 
-	body := reminder.FormatDigest(sendDate, days)
+	body := reminder.FormatDigest(sendDate, days, "")
 
 	assert.Contains(t, body, "15 June 2026")
 	assert.Contains(t, body, "Dave \u2014 birthday")
@@ -70,6 +72,6 @@ func TestFormatDigest_TodayEvent(t *testing.T) {
 			},
 		},
 	}
-	body := reminder.FormatDigest(sendDate, days)
+	body := reminder.FormatDigest(sendDate, days, "")
 	assert.Contains(t, body, "today")
 }

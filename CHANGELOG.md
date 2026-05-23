@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `external_url` config field: sets the public base URL for the server. Used to build deep links in reminder digest emails.
+- Reminder digest emails are now HTML; birthday items include a hyperlink directly to the person's detail page when `external_url` is configured.
+- `mailer.SendHTML` function for sending HTML emails; the daily digest scheduler now uses it.
 - **Relationship improvements**: since/until dates (year+month+day precision), notes field, and inline edit/delete on relationship rows (card-swap pattern matching addresses). Person-type relationships now have a live-search picker (`GET /people/search?_search=…`) instead of a raw UUID field. An optional "Create new person" checkbox lets you create a stub person and link them in one step.
 - `internal/store`: `PersonRelationshipRow`, `ListPersonRelationships`, `GetPersonRelationshipRow` — single JOIN query across relationships/blurry_dates
 - `internal/store`: `UpdateRelationship` — updates label, notes, since_id, until_id atomically

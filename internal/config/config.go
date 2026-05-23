@@ -32,6 +32,9 @@ type Config struct {
 	ReminderSendTime string `json:"reminder_send_time"`
 	// ReminderTimezone is a valid IANA timezone name (e.g. "Europe/London").
 	ReminderTimezone string `json:"reminder_timezone"`
+	// ExternalURL is the public base URL of the server (e.g. "https://prm.example.com").
+	// Used to build absolute links in outbound emails.
+	ExternalURL string `json:"external_url,omitempty"`
 	// DisableBasicAuth disables HTTP Basic Auth when set to true.
 	// For development use only — never set this in production.
 	DisableBasicAuth bool `json:"disable_basic_auth,omitempty"`

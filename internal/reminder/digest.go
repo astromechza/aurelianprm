@@ -20,6 +20,9 @@ type Item struct {
 	Label string
 	// OccursOn is the anniversary date (triggerDate + ReminderDaysBefore).
 	OccursOn time.Time
+	// PersonID is the ID of the primary person for this item, used to build
+	// a deep link in HTML digest emails. Empty for items with no single person.
+	PersonID string
 }
 
 // ComputeReminders returns all reminder items due on triggerDate in the given
@@ -65,6 +68,7 @@ func resolveItem(ctx context.Context, sqlDB *sql.DB, bd model.BlurryDate, occurs
 		return Item{
 			Label:    person.Name + " \u2014 birthday",
 			OccursOn: occursOn,
+			PersonID: person.ID,
 		}, true, nil
 	}
 	if !errors.Is(err, sql.ErrNoRows) {

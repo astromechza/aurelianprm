@@ -17,22 +17,26 @@ import (
 type Config struct {
 	// DB is the SQLite database connection.
 	DB *sql.DB
-	// SendFunc delivers the email. In production this wraps mailer.Send;
+	// SendFunc delivers the email. In production this wraps mailer.SendHTML;
 	// in tests it captures sent emails without SMTP.
 	SendFunc func(subject, body string) error
 	// SendTime is a wall-clock time in "HH:MM" format (e.g. "08:00").
 	SendTime string
 	// Timezone is a valid IANA timezone name (e.g. "Europe/London").
 	Timezone string
+	// ExternalURL is the public base URL used to build deep links in digest
+	// emails (e.g. "https://prm.example.com"). Optional; omit to skip links.
+	ExternalURL string
 }
 
 // Scheduler runs a daily reminder digest goroutine.
 type Scheduler struct {
-	db         *sql.DB
-	sendFunc   func(subject, body string) error
-	sendHour   int
-	sendMinute int
-	tz         *time.Location
+	db          *sql.DB
+	sendFunc    func(subject, body string) error
+	sendHour    int
+	sendMinute  int
+	tz          *time.Location
+	externalURL string
 }
 
 // NewScheduler creates a Scheduler from cfg. It panics if Timezone is invalid
@@ -59,11 +63,12 @@ func NewScheduler(cfg Config) *Scheduler {
 		panic(fmt.Sprintf("reminder.NewScheduler: send_time %q out of range, expected HH:MM", cfg.SendTime))
 	}
 	return &Scheduler{
-		db:         cfg.DB,
-		sendFunc:   cfg.SendFunc,
-		sendHour:   hour,
-		sendMinute: minute,
-		tz:         tz,
+		db:          cfg.DB,
+		sendFunc:    cfg.SendFunc,
+		sendHour:    hour,
+		sendMinute:  minute,
+		tz:          tz,
+		externalURL: cfg.ExternalURL,
 	}
 }
 
@@ -123,7 +128,7 @@ func (s *Scheduler) runOnce(ctx context.Context, today time.Time) {
 	}
 
 	subject := fmt.Sprintf("AurelianPRM \u2014 reminders for %s", today.Format("2 January 2006"))
-	body := FormatDigest(today, days)
+	body := FormatDigest(today, days, s.externalURL)
 
 	// Attempt send with retries: immediate, +10s, +20s, +30s (4 total attempts).
 	retryDelays := []time.Duration{0, 10 * time.Second, 20 * time.Second, 30 * time.Second}
