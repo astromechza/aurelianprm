@@ -45,7 +45,7 @@ func findBirthdayReminders(persons []dal.Entity, now time.Time) []Reminder {
 				if pd.BirthYear > 0 {
 					label = fmt.Sprintf("%s's birthday (turning %d)", pd.Name, year-pd.BirthYear)
 				}
-				reminders = append(reminders, Reminder{Date: candidate, Label: label})
+				reminders = append(reminders, Reminder{Date: candidate, Label: label, PersonID: entity.ID})
 				break
 			}
 		}

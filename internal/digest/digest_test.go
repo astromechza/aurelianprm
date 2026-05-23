@@ -127,15 +127,40 @@ func TestFindReminders_sortedByDateThenLabel(t *testing.T) {
 	assert.Equal(t, "Zebra's birthday", got[3].Label)
 }
 
-func TestComposeBody(t *testing.T) {
+func TestComposeHTMLBody(t *testing.T) {
 	reminders := []Reminder{
-		{Date: time.Date(2026, 4, 28, 0, 0, 0, 0, time.UTC), Label: "Alice's birthday"},
-		{Date: time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC), Label: "Bob's birthday (turning 30)"},
+		{Date: time.Date(2026, 4, 28, 0, 0, 0, 0, time.UTC), Label: "Alice's birthday", PersonID: "test-Alice"},
+		{Date: time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC), Label: "Bob's birthday (turning 30)", PersonID: "test-Bob"},
+		{Date: time.Date(2026, 5, 2, 0, 0, 0, 0, time.UTC), Label: "No ID reminder"},
 	}
-	body := composeBody(reminders)
-	assert.Contains(t, body, "Upcoming reminders in the next 7 days:")
-	assert.Contains(t, body, "• Tue 28 Apr — Alice's birthday")
-	assert.Contains(t, body, "• Fri 1 May — Bob's birthday (turning 30)")
+
+	t.Run("with external URL includes links", func(t *testing.T) {
+		body := composeHTMLBody(reminders, "https://example.com/")
+		assert.Contains(t, body, "<ul>")
+		assert.Contains(t, body, `href="https://example.com/persons/test-Alice"`)
+		assert.Contains(t, body, `href="https://example.com/persons/test-Bob"`)
+		assert.Contains(t, body, "Alice&#39;s birthday")
+		// Reminder with no PersonID renders without link
+		assert.Contains(t, body, "No ID reminder")
+		assert.NotContains(t, body, "persons/\">")
+	})
+
+	t.Run("without external URL renders plain labels", func(t *testing.T) {
+		body := composeHTMLBody(reminders, "")
+		assert.Contains(t, body, "<ul>")
+		assert.NotContains(t, body, "<a href")
+		assert.Contains(t, body, "Alice&#39;s birthday")
+		assert.Contains(t, body, "Bob&#39;s birthday (turning 30)")
+	})
+
+	t.Run("html/template escapes special chars in label", func(t *testing.T) {
+		evil := []Reminder{
+			{Date: time.Date(2026, 4, 28, 0, 0, 0, 0, time.UTC), Label: `<script>alert(1)</script>`, PersonID: "x"},
+		}
+		body := composeHTMLBody(evil, "https://example.com")
+		assert.NotContains(t, body, "<script>")
+		assert.Contains(t, body, "&lt;script&gt;")
+	})
 }
 
 func TestSendDigest_noReminders_doesNotSend(t *testing.T) {
@@ -182,6 +207,7 @@ func TestSendDigest_withReminders_sendsEmail(t *testing.T) {
 		})
 	require.NoError(t, err)
 	assert.Equal(t, "Reminders for Mon 27 Apr 2026", gotSubject)
-	assert.Contains(t, gotBody, "Alice's birthday")
+	assert.Contains(t, gotBody, "<ul>")
+	assert.Contains(t, gotBody, "Alice&#39;s birthday")
 	assert.Equal(t, "to@test.com", gotTo)
 }

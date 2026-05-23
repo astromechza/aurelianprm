@@ -19,7 +19,7 @@ func newSMTPSender(cfg Config) senderFunc {
 			return fmt.Errorf("set to address: %w", err)
 		}
 		msg.Subject(subject)
-		msg.SetBodyString(mail.TypeTextPlain, body)
+		msg.SetBodyString(mail.TypeTextHTML, body)
 
 		port := cfg.SMTPPort
 		if port == 0 {

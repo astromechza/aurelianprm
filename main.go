@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -63,8 +64,16 @@ func runDigest() error {
 	fs := flag.NewFlagSet("send-digest", flag.ContinueOnError)
 	dbPath := fs.String("db", "aurelianprm.db", "path to SQLite database file")
 	force := fs.Bool("force", false, "send digest even when there are no reminders")
+	externalURL := fs.String("external-url", "", "base URL for person links in digest email (e.g. https://aurelianprm.example.com)")
 	if err := fs.Parse(os.Args[2:]); err != nil {
 		return err
+	}
+
+	if *externalURL != "" {
+		u, err := url.Parse(*externalURL)
+		if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+			return fmt.Errorf("--external-url must be a valid http/https URL (e.g. https://example.com)")
+		}
 	}
 
 	cfg, err := digestConfigFromEnv()
@@ -79,6 +88,7 @@ func runDigest() error {
 	defer sqlDB.Close() //nolint:errcheck
 
 	cfg.Force = *force
+	cfg.ExternalURL = *externalURL
 	return digest.SendDigest(context.Background(), dal.New(sqlDB, *dbPath), cfg)
 }
 
