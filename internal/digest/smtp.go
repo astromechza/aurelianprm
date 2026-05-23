@@ -10,7 +10,7 @@ import (
 // Set cfg.SMTPSSL=true for implicit TLS on port 465 (Fastmail recommended).
 // Default uses STARTTLS mandatory on port 587.
 func newSMTPSender(cfg Config) senderFunc {
-	return func(subject, body, from, to string) error {
+	return func(subject, htmlBody, textBody, from, to string) error {
 		msg := mail.NewMsg()
 		if err := msg.From(from); err != nil {
 			return fmt.Errorf("set from address: %w", err)
@@ -19,7 +19,8 @@ func newSMTPSender(cfg Config) senderFunc {
 			return fmt.Errorf("set to address: %w", err)
 		}
 		msg.Subject(subject)
-		msg.SetBodyString(mail.TypeTextPlain, body)
+		msg.SetBodyString(mail.TypeTextHTML, htmlBody)
+		msg.AddAlternativeString(mail.TypeTextPlain, textBody)
 
 		port := cfg.SMTPPort
 		if port == 0 {
