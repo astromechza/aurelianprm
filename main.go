@@ -71,8 +71,8 @@ func runDigest() error {
 
 	if *externalURL != "" {
 		u, err := url.Parse(*externalURL)
-		if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
-			return fmt.Errorf("--external-url must be a valid http/https URL (e.g. https://example.com)")
+		if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" || u.RawQuery != "" || u.Fragment != "" {
+			return fmt.Errorf("--external-url must be a plain http/https base URL with no query string or fragment (e.g. https://example.com)")
 		}
 	}
 

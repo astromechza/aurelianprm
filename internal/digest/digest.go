@@ -37,7 +37,8 @@ type Config struct {
 }
 
 // senderFunc delivers a composed message. Injected in tests to avoid live SMTP.
-type senderFunc func(subject, body, from, to string) error
+// Both htmlBody and textBody are non-empty; the SMTP sender sends both as multipart/alternative.
+type senderFunc func(subject, htmlBody, textBody, from, to string) error
 
 // FindReminders aggregates all reminder sources for the window [now, now+6] and
 // returns results sorted by date ascending, then label ascending.
@@ -86,12 +87,25 @@ func composeHTMLBody(reminders []Reminder, externalURL string) string {
 	}
 	var buf bytes.Buffer
 	if err := digestTemplate.Execute(&buf, items); err != nil {
-		// Template execution should never fail with valid data; fall back to label list.
+		// Template execution should never fail with valid data; fall back to minimal valid HTML.
+		buf.Reset()
+		buf.WriteString("<html><body><ul>")
 		for _, r := range reminders {
-			fmt.Fprintf(&buf, "%s — %s\n", r.Date.Format("Mon 2 Jan"), r.Label)
+			fmt.Fprintf(&buf, "<li>%s &mdash; %s</li>", template.HTMLEscapeString(r.Date.Format("Mon 2 Jan")), template.HTMLEscapeString(r.Label))
 		}
+		buf.WriteString("</ul></body></html>")
 	}
 	return buf.String()
+}
+
+// composeTextBody formats the plain-text alternative body for the digest email.
+func composeTextBody(reminders []Reminder) string {
+	var sb strings.Builder
+	sb.WriteString("Upcoming reminders in the next 7 days:\n\n")
+	for _, r := range reminders {
+		fmt.Fprintf(&sb, "* %s — %s\n", r.Date.Format("Mon 2 Jan"), r.Label)
+	}
+	return sb.String()
 }
 
 // sendDigest is the internal entry point; send is injected for testability.
@@ -113,9 +127,10 @@ func sendDigest(ctx context.Context, d *dal.DAL, cfg Config, now time.Time, send
 	}
 
 	subject := fmt.Sprintf("Reminders for %s", now.Format("Mon 2 Jan 2006"))
-	body := composeHTMLBody(reminders, cfg.ExternalURL)
+	htmlBody := composeHTMLBody(reminders, cfg.ExternalURL)
+	textBody := composeTextBody(reminders)
 	slog.Info("sending digest email", "to", cfg.DigestTo, "subject", subject)
-	if err := send(subject, body, cfg.SMTPFrom, cfg.DigestTo); err != nil {
+	if err := send(subject, htmlBody, textBody, cfg.SMTPFrom, cfg.DigestTo); err != nil {
 		return fmt.Errorf("send email: %w", err)
 	}
 	slog.Info("digest email sent successfully", "to", cfg.DigestTo)
@@ -123,8 +138,8 @@ func sendDigest(ctx context.Context, d *dal.DAL, cfg Config, now time.Time, send
 }
 
 // SendDigest is the public entry point. Loads persons from the database, finds
-// upcoming reminders, and sends an HTML digest email. No email is sent if
-// no reminders are found.
+// upcoming reminders, and sends a multipart HTML+text digest email. No email is
+// sent if no reminders are found.
 func SendDigest(ctx context.Context, d *dal.DAL, cfg Config) error {
 	return sendDigest(ctx, d, cfg, time.Now(), newSMTPSender(cfg))
 }

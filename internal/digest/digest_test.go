@@ -170,7 +170,7 @@ func TestSendDigest_noReminders_doesNotSend(t *testing.T) {
 	d := dal.New(sqlDB, ":memory:")
 
 	sendCalled := false
-	err = sendDigest(t.Context(), d, Config{}, time.Now(), func(_, _, _, _ string) error {
+	err = sendDigest(t.Context(), d, Config{}, time.Now(), func(_, _, _, _, _ string) error {
 		sendCalled = true
 		return nil
 	})
@@ -197,17 +197,19 @@ func TestSendDigest_withReminders_sendsEmail(t *testing.T) {
 		return err
 	}))
 
-	var gotSubject, gotBody, gotTo string
+	var gotSubject, gotHTMLBody, gotTextBody, gotTo string
 	err = sendDigest(t.Context(), d, Config{SMTPFrom: "from@test.com", DigestTo: "to@test.com"}, now,
-		func(subject, body, _ string, to string) error {
+		func(subject, htmlBody, textBody, _, to string) error {
 			gotSubject = subject
-			gotBody = body
+			gotHTMLBody = htmlBody
+			gotTextBody = textBody
 			gotTo = to
 			return nil
 		})
 	require.NoError(t, err)
 	assert.Equal(t, "Reminders for Mon 27 Apr 2026", gotSubject)
-	assert.Contains(t, gotBody, "<ul>")
-	assert.Contains(t, gotBody, "Alice&#39;s birthday")
+	assert.Contains(t, gotHTMLBody, "<ul>")
+	assert.Contains(t, gotHTMLBody, "Alice&#39;s birthday")
+	assert.Contains(t, gotTextBody, "* Mon 27 Apr — Alice's birthday")
 	assert.Equal(t, "to@test.com", gotTo)
 }
