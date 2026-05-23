@@ -30,7 +30,7 @@ type Config struct {
 	SMTPUser    string
 	SMTPPass    string
 	SMTPFrom    string
-	SMTPSSL     bool   // true = implicit TLS (port 465); false = STARTTLS mandatory (port 587)
+	SMTPSSL     bool // true = implicit TLS (port 465); false = STARTTLS mandatory (port 587)
 	DigestTo    string
 	ExternalURL string // optional base URL for person links (e.g. https://aurelianprm.example.com)
 	Force       bool   // if true, send even when there are no reminders
