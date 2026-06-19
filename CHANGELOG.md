@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Fixed
+
+- SQLite PRAGMAs (`foreign_keys`, `journal_mode=WAL`, `busy_timeout`) are now set via the connection DSN (`_pragma=...`) instead of a one-off `ExecContext` on the pool. The modernc.org/sqlite driver applies a PRAGMA only to the connection it ran on, so foreign-key enforcement (and `ON DELETE CASCADE`) was previously only guaranteed by the `SetMaxOpenConns(1)` cap; the DSN approach makes the pragmas correct on every connection, so the cap is no longer load-bearing for correctness. Added `TestOpen_CascadeOnSecondaryConnection`.
+
 ### Phase 2 — HTMX Web UI
 
 - Added `main.go` HTTP entrypoint: `--db` and `--addr` flags, `PORT` env var fallback
