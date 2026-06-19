@@ -1,11 +1,55 @@
 package db_test
 
 import (
+	"context"
+	"path/filepath"
 	"testing"
 
 	"github.com/astromechza/aurelianprm/internal/db"
 	"github.com/stretchr/testify/require"
 )
+
+// TestOpen_CascadeOnSecondaryConnection guards against a latent bug where
+// foreign-key enforcement is applied via a PRAGMA on the *sql.DB pool, which
+// only affects the single connection it ran on. It uses a file-backed database
+// (in-memory DBs collapse the pool to one connection), raises the max open
+// connections above one, and pins the initial connection so the cascading
+// delete is forced onto a *second* connection — asserting ON DELETE CASCADE
+// still fires there. This proves the pragmas are applied per-connection (via
+// the DSN) and not merely to whichever connection happened to run them first.
+func TestOpen_CascadeOnSecondaryConnection(t *testing.T) {
+	ctx := context.Background()
+	path := filepath.Join(t.TempDir(), "prm.db")
+
+	conn, err := db.Open(path)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = conn.Close() })
+
+	conn.SetMaxOpenConns(2)
+
+	// Pin connection #1 so subsequent pool operations must use connection #2.
+	pinned, err := conn.Conn(ctx)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = pinned.Close() })
+
+	_, err = conn.ExecContext(ctx, `INSERT INTO entities (id, type, data) VALUES
+		('01JTESTCASCADE0000000000A', 'Person', '{}'),
+		('01JTESTCASCADE0000000000B', 'EmailAddress', '{}')`)
+	require.NoError(t, err)
+	_, err = conn.ExecContext(ctx, `INSERT INTO relationships (id, entity_a_id, entity_b_id, type)
+		VALUES ('01JTESTCASCADE0000000000R', '01JTESTCASCADE0000000000A', '01JTESTCASCADE0000000000B', 'hasEmail')`)
+	require.NoError(t, err)
+
+	// Deleting entity A must cascade to the relationship referencing it, but
+	// only if FKs are enforced on whichever connection the pool hands us here.
+	_, err = conn.ExecContext(ctx, `DELETE FROM entities WHERE id = '01JTESTCASCADE0000000000A'`)
+	require.NoError(t, err)
+
+	var count int
+	require.NoError(t, conn.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM relationships WHERE id = '01JTESTCASCADE0000000000R'`).Scan(&count))
+	require.Equal(t, 0, count, "ON DELETE CASCADE must fire on a non-initial pooled connection")
+}
 
 func TestOpen_pragmas(t *testing.T) {
 	// Use a file-based database since :memory: doesn't support WAL mode
