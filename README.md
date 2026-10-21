@@ -26,7 +26,7 @@ Multi-arch manifest (linux/amd64, linux/arm64). Runs as non-root (uid 65532, dis
 
 ### Build from source
 
-Requires Go 1.26+.
+Requires Go 1.27+.
 
 ```sh
 git clone https://github.com/astromechza/aurelianprm.git
