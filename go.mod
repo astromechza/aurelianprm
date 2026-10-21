@@ -1,6 +1,6 @@
 module github.com/astromechza/aurelianprm
 
-go 1.26.2
+go 1.26.10
 
 require (
 	github.com/pressly/goose/v3 v3.27.0
