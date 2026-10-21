@@ -1,17 +1,16 @@
 module github.com/astromechza/aurelianprm
 
-go 1.26.10
+go 1.27.3
 
 require (
+	github.com/go-chi/chi/v5 v5.2.5
+	github.com/oklog/ulid/v2 v2.1.1
 	github.com/pressly/goose/v3 v3.27.0
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2
 	github.com/stretchr/testify v1.11.1
+	github.com/wneessen/go-mail v0.7.2
 	modernc.org/sqlite v1.49.1
 )
-
-require github.com/go-chi/chi/v5 v5.2.5
-
-require github.com/wneessen/go-mail v0.7.2
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
@@ -20,7 +19,6 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mfridman/interpolate v0.0.2 // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect
-	github.com/oklog/ulid/v2 v2.1.1
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/sethvargo/go-retry v0.3.0 // indirect
